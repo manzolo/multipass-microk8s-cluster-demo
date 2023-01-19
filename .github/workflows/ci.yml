@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Install packages
         #run: sudo systemctl unmask snapd.service && sudo systemctl enable snapd.service && sudo systemctl start snapd.service && sudo systemctl status snapd.service && sudo snap install multipass
-        run: sudo sh -c "snap\ list\ multipass && sudo snap refresh multipass --channel stable || sudo snap install multipass --channel stable
+        run: sudo sh -c "snap\ list\ multipass && sudo snap refresh multipass --channel stable || sudo snap install multipass --channel stable"
         #run: sudo apt update && sudo apt -y upgrade && sudo snap install multipass && sudo snap restart multipass.multipassd
         #run:  apt update && apt -y install snapd && systemctl unmask snapd.service && systemctl enable snapd.service && systemctl start snapd.service && snap install multipass
       - name: Wait for multipass to be up

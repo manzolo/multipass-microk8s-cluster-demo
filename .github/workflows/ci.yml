@@ -4,16 +4,17 @@ on:
     branches: [main]
 jobs:
   build:
-    #runs-on: ubuntu-22.04
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:22.04
+    runs-on: ubuntu-22.04
+    #runs-on: ubuntu-latest
+    #container:
+    #  image: ubuntu:22.04
     steps:
       - name: Download source
         uses: actions/checkout@v2
       - name: Install packages
+        run: sudo systemctl unmask snapd.service && sudo systemctl enable snapd.service && sudo systemctl start snapd.service && sudo systemctl status snapd.service && snap install multipass
         #run: sudo apt update && sudo apt -y upgrade && sudo snap install multipass && sudo snap restart multipass.multipassd
-        run:  apt update && apt -y install snapd && systemctl unmask snapd.service && systemctl enable snapd.service && systemctl start snapd.service && snap install multipass
+        #run:  apt update && apt -y install snapd && systemctl unmask snapd.service && systemctl enable snapd.service && systemctl start snapd.service && snap install multipass
       - name: Wait for multipass to be up
         shell: bash
         run: |

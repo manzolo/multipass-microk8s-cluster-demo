@@ -13,6 +13,6 @@ jobs:
       - name: Install packages
         run: sudo snap install multipass --classic
       - name: Create cluster
-        run: cd multipass-microk8s-cluster-demo && ./create_kube_vms.sh
+        run: ./create_kube_vms.sh
 
 

@@ -1,0 +1,1 @@
+microk8s join 10.65.7.205:25000/c62291fc8cfc14e5ec8aa9b48d3be3b6/64a87e461121 --worker

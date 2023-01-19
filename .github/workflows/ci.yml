@@ -4,26 +4,24 @@ on:
     branches: [main]
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    #runs-on: ubuntu-latest
-    #container:
-    #  image: ubuntu:22.04
+    runs-on: macos-latest
     steps:
-      - name: Download source
-        uses: actions/checkout@v2
-      - name: Install packages
-        #run: sudo systemctl unmask snapd.service && sudo systemctl enable snapd.service && sudo systemctl start snapd.service && sudo systemctl status snapd.service && sudo snap install multipass
-        #run: sudo apt update && sudo apt -y upgrade && sudo snap install multipass && sudo snap restart multipass.multipassd
-        #run:  apt update && apt -y install snapd && systemctl unmask snapd.service && systemctl enable snapd.service && systemctl start snapd.service && snap install multipass
-        run: sudo snap install multipass && sudo snap services multipass && sudo snap info multipass && sudo snap logs multipass && sudo systemctl status snap.multipass.*
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install project dependencies
+        shell: bash
+        run: |
+          brew install --cask multipass
+          hash -r
       - name: Wait for multipass to be up
         shell: bash
         run: |
           until multipass list; do
-            echo 'multipass is not running, will check again in 10 seconds'
-            sleep 10
-            sudo snap logs multipass && sudo systemctl status snap.multipass.*
-          done        
+            echo 'multipass is not running, will check again in 2 seconds'
+            sleep 2
+          done
+      - name: Download source
+        uses: actions/checkout@v2
       - name: Create cluster
         run: ./create_kube_vms.sh
 

@@ -41,7 +41,7 @@ then sudo microk8s enable dns dashboard hostpath-storage helm
     #sudo microk8s config | sed -e "s|server: https://$NET.1:16443|server: https://$OUT:16443|" >/etc/kubeconfig
 else 
     sudo microk8s enable dns dashboard hostpath-storage helm
-    ${HOST_DIR_NAME}/_join_node.sh &
+    sudo ${HOST_DIR_NAME}/_join_node.sh &
     BACK_PID=$!
     while kill -0 $BACK_PID ; do
         echo "still trying to join..."

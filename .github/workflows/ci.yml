@@ -1,0 +1,18 @@
+on:
+  push:
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download source
+        uses: actions/checkout@v2
+      - name: Install packages
+        run: sudo apt update
+      - name: Install packages
+        run: sudo apt -qy install multipass
+      - name: Create cluster
+        run: cd multipass-microk8s-cluster-demo && ./create_kube_vms.sh
+
+

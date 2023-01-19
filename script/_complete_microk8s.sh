@@ -3,6 +3,7 @@ HOST_DIR_NAME=$1
 
 rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
 rm -rf ${HOST_DIR_NAME}/script/_test.sh
+rm -rf ${HOST_DIR_NAME}/config/hosts
 
 kubectl apply -f ${HOST_DIR_NAME}/config/go-deployment.yaml
 kubectl rollout status deployment/go-deployment

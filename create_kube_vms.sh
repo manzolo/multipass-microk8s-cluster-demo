@@ -31,7 +31,10 @@ do
 multipass launch -m $nodeRam -d $nodeHddGb -c $nodeCpu -n k8s-node$counter
 ((counter++))
 done
+
 HOST_DIR_NAME=${PWD}
+
+multipass list | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > ${HOST_DIR_NAME}/config/hosts
 
 echo "[task 1]== mount host drive with installation scripts =="
 

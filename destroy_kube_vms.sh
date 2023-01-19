@@ -12,5 +12,6 @@ multipass purge
 multipass list
 
 rm -rf "./script/_test.sh"
+rm -rf "./config/hosts"
 
 echo "== Vms cluster clear"

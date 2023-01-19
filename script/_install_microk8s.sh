@@ -44,9 +44,11 @@ sudo snap alias microk8s.kubectl k
 
 if test "$(hostname)" = "k8s-main"
 then sudo microk8s enable dns dashboard helm
+    sudo cp ${HOST_DIR_NAME}/config/hosts /etc/hosts
     #sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
     #sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'
 else 
+    sudo cp ${HOST_DIR_NAME}/config/hosts /etc/hosts
     sudo microk8s enable dns
     sudo ${HOST_DIR_NAME}/script/_join_node.sh &
     BACK_PID=$!

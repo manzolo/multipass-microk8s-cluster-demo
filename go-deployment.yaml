@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-deployment
+  labels:
+    app: go
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: go
+  template:
+    metadata:
+      labels:
+        app: go
+    spec:
+      containers:
+      - name: go
+        image: manzolo/demo-go:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http-web-svc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: go
+spec:
+  selector:
+    app: go
+  ports:
+    - port: 80
+      targetPort: http-web-svc
+      protocol: TCP
+      nodePort: 31001
+  type: NodePort

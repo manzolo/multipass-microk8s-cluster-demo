@@ -24,5 +24,14 @@ jobs:
         uses: actions/checkout@v2
       - name: Create cluster
         run: ./create_kube_vms.sh
-
-
+      - name: Test cluster
+        shell: bash
+        run: |
+          results=1
+          while [ $results -le 10 ]
+          do
+          "./script/_test.sh"
+          ((results++))
+          done
+      - name: Destroy cluster
+        run: ./destroy_kube_vms.sh

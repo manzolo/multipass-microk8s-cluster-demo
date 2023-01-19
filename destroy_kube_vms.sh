@@ -11,4 +11,6 @@ multipass delete k8s-main
 multipass purge
 multipass list
 
+rm -rf "./script/_test.sh"
+
 echo "== Vms cluster clear"

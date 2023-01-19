@@ -21,6 +21,8 @@ run_command_on_node () {
     multipass exec -v ${node_name} -- ${command}
 }
 
+rm -rf "${HOST_DIR_NAME}/script/_test.sh"
+
 echo "== Creating vms cluster"
 multipass launch -m $mainRam -d $mainHddGb -c $mainCpu -n k8s-main
 counter=1
@@ -68,3 +70,6 @@ IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
 NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services go)
 echo "Try:"
 echo "curl http://$IP:$NODEPORT"
+
+echo "curl http://$IP:$NODEPORT" > "${HOST_DIR_NAME}/script/_test.sh"
+chmod +x "${HOST_DIR_NAME}/script/_test.sh"

@@ -15,7 +15,7 @@ jobs:
         #run: sudo systemctl unmask snapd.service && sudo systemctl enable snapd.service && sudo systemctl start snapd.service && sudo systemctl status snapd.service && sudo snap install multipass
         #run: sudo apt update && sudo apt -y upgrade && sudo snap install multipass && sudo snap restart multipass.multipassd
         #run:  apt update && apt -y install snapd && systemctl unmask snapd.service && systemctl enable snapd.service && systemctl start snapd.service && snap install multipass
-        run: snap install multipass && multipass start
+        run: sudo snap install multipass && sudo multipass start
       - name: Wait for multipass to be up
         shell: bash
         run: |

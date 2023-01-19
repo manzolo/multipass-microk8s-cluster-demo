@@ -9,7 +9,7 @@ jobs:
       - name: Download source
         uses: actions/checkout@v2
       - name: Install packages
-        run: sudo apt update && sudo snap install multipass && sudo multipass start
+        run: sudo apt update && sudo snap install multipass && sudo snap restart multipass.multipassd
       - name: Wait for multipass to be up
         shell: bash
         run: |

@@ -12,8 +12,3 @@ echo "kubectl get node:"
 kubectl get node
 echo "kubectl get all -o wide:"
 kubectl get all -o wide
-
-IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
-NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services go)
-echo "Try:"
-echo "curl http://$IP:$NODEPORT"

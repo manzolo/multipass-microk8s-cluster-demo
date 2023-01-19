@@ -34,7 +34,7 @@ if test "$IP" = "k8s-main"
 then sudo microk8s enable dns dashboard hostpath-storage helm
     sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
     #JOINCMD=$(microk8s add-node | sed '/microk8s/p' | head -1)
-    JOINCMD=$(sudo microk8s add-node -l 120 | sed '/microk8s/p' | sed '6!d')
+    JOINCMD=$(sudo microk8s add-node -l 300 | sed '/microk8s/p' | sed '6!d')
     
     echo "${JOINCMD##Join node with: }" >> ${HOST_DIR_NAME}/_join_node.sh 
     sudo chmod a+x ${HOST_DIR_NAME}/_join_node.sh

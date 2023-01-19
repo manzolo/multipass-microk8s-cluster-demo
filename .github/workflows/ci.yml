@@ -9,9 +9,14 @@ jobs:
       - name: Download source
         uses: actions/checkout@v2
       - name: Install packages
-        run: sudo apt update
-      - name: Install packages
-        run: sudo snap install multipass --classic
+        run: sudo apt update && sudo snap install multipass
+      - name: Wait for multipass to be up
+        shell: bash
+        run: |
+          until multipass list; do
+            echo 'multipass is not running, will check again in 2 seconds'
+            sleep 2
+          done        
       - name: Create cluster
         run: ./create_kube_vms.sh
 

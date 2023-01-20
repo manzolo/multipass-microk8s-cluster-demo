@@ -5,7 +5,7 @@ metadata:
   labels:
     app: demo-go
 spec:
-  replicas: 6
+  replicas: 10
   selector:
     matchLabels:
       app: demo-go
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: demo-go
-        image: manzolo/demo-go:latest
+        image: manzolo/demo-go:0.1.0
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

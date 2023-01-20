@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   name: demo-go
   labels:
-    app: go
+    app: demo-go
 spec:
   replicas: 6
   selector:
     matchLabels:
-      app: go
+      app: demo-go
   template:
     metadata:
       labels:
-        app: go
+        app: demo-go
     spec:
       containers:
-      - name: go
+      - name: demo-go
         image: manzolo/demo-go:latest
         imagePullPolicy: Always
         ports:
@@ -27,10 +27,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: go
+  name: demo-go
 spec:
   selector:
-    app: go
+    app: demo-go
   ports:
     - port: 80
       targetPort: http-web-svc

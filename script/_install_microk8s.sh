@@ -30,12 +30,13 @@ sudo snap install microk8s --classic --stable
 sudo usermod -a -G microk8s ubuntu
 #sudo chown -f -R ubuntu ~/.kube
 #newgrp microk8s
-sudo microk8s status --wait-ready
+#sudo microk8s status --wait-ready
 
 #(cd ~/.kube && sudo microk8s config > config) & disown
 #sudo ufw allow in on cni0 && sudo ufw allow out on cni0
 #sudo ufw default allow routed
 sudo snap alias microk8s.helm helm
+sudo snap alias microk8s.helm3 helm3
  # helm repo
 #helm repo add stable https://charts.helm.sh/stable
 #helm repo add jetstack https://charts.jetstack.io 

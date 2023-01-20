@@ -19,11 +19,6 @@ nodeRam=1Gb
 nodeHddGb=10Gb
 #--------------------------------------------------------------------------
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BROWN='\033[0;33m'
-NC='\033[0m' # No Color
-
 #Include functions
 source $(dirname $0)/script/__functions.sh
 

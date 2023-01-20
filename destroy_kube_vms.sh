@@ -1,5 +1,9 @@
 #!/bin/bash
-echo "== Clean vms cluster"
+
+#Include functions
+source $(dirname $0)/script/__functions.sh
+
+echo "${BROWN}== Clean vms cluster${NC}"
 
 multipass list | grep k8s-node | awk '{print $1}' | while read node; do
 echo "remove $node =="
@@ -14,4 +18,4 @@ multipass list
 rm -rf "./script/_test.sh"
 rm -rf "./config/hosts"
 
-echo "== Vms cluster clear"
+echo "${GREEN}== Vms cluster clear${NC}"

@@ -3,7 +3,7 @@
 #Include functions
 source $(dirname $0)/script/__functions.sh
 
-echo "${BROWN}== Clean vms cluster${NC}"
+echo -e "${BROWN}== Clean vms cluster${NC}"
 
 multipass list | grep k8s-node | awk '{print $1}' | while read node; do
 echo "remove $node =="
@@ -18,4 +18,4 @@ multipass list
 rm -rf "./script/_test.sh"
 rm -rf "./config/hosts"
 
-echo "${GREEN}== Vms cluster clear${NC}"
+echo -e "${GREEN}== Vms cluster clear${NC}"

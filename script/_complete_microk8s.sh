@@ -7,7 +7,7 @@ rm -rf ${HOST_DIR_NAME}/config/hosts
 
 kubectl apply -f ${HOST_DIR_NAME}/config/go-deployment.yaml
 kubectl rollout status deployment/go-deployment
-kubectl scale deployment go-deployment --replicas=6
+#kubectl scale deployment go-deployment --replicas=6
 echo "Waiting deploy start..."
 sleep 10
 echo "kubectl get node:"

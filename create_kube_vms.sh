@@ -1,4 +1,7 @@
 #!/bin/bash
+
+HOST_DIR_NAME=${PWD}
+
 #------------------- Env vars ---------------------------------------------
 #Number of nodes
 instances="${1:-2}"
@@ -15,64 +18,76 @@ nodeRam=1Gb
 #GB of HDD for main VM
 nodeHddGb=10Gb
 #--------------------------------------------------------------------------
-run_command_on_node () {
-    node_name=$1
-    command=$2
-    multipass exec -v ${node_name} -- ${command}
-}
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BROWN='\033[0;33m'
+NC='\033[0m' # No Color
+
+#Include functions
+source $(dirname $0)/script/__functions.sh
+
+echo -e "${BROWN}Check prerequisites${NC}"
+
+#Check prerequisites
+check_command_exists "multipass"
+
+#Clean temp files
 rm -rf "${HOST_DIR_NAME}/script/_test.sh"
 
-echo "== Creating vms cluster"
+
+echo -e "${BROWN}== Creating vms cluster${NC}"
 multipass launch -m $mainRam -d $mainHddGb -c $mainCpu -n k8s-main
+
+#Create vms
 counter=1
 while [ $counter -le $instances ]
 do
-multipass launch -m $nodeRam -d $nodeHddGb -c $nodeCpu -n k8s-node$counter
-((counter++))
+    multipass launch -m $nodeRam -d $nodeHddGb -c $nodeCpu -n k8s-node$counter
+    ((counter++))
 done
 
-HOST_DIR_NAME=${PWD}
+#Create host file
+multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > ${HOST_DIR_NAME}/config/hosts
 
-multipass list | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > ${HOST_DIR_NAME}/config/hosts
-
-echo "[task 1]== mount host drive with installation scripts =="
+echo -e "${BROWN}[task 1]== mount host drive with installation scripts ==${NC}"
 
 multipass mount ${HOST_DIR_NAME} k8s-main
 
+#mount drive on nodes
 counter=1
 while [ $counter -le $instances ]
 do
-multipass mount ${HOST_DIR_NAME} k8s-node$counter
-((counter++))
+    multipass mount ${HOST_DIR_NAME} k8s-node$counter
+    ((counter++))
 done
 
-echo "[task 2]== installing microk8s k8s-main =="
+echo -e "${BROWN}[task 2]== installing microk8s on k8s-main ==${NC}"
 run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_install_microk8s.sh ${HOST_DIR_NAME}"
 
-echo "*** installing kuberbetes on worker's node ***"
+echo -e "${BROWN}*** installing kuberbetes on worker's node ***${NC}"
 
 counter=1
 while [ $counter -le $instances ]
 do
-rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
-echo "[task 3]== Generate join cluster command k8s-main =="
-run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_join_cluster_helper.sh ${HOST_DIR_NAME}"
+    rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
+    echo -e "${BROWN}[task 3]== Generate join cluster command k8s-main ==${NC}"
+    run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_join_cluster_helper.sh ${HOST_DIR_NAME}"
 
-echo "[task 3]== installing microk8s k8s-node"$counter" =="
-run_command_on_node "k8s-node"$counter "${HOST_DIR_NAME}/script/_install_microk8s.sh ${HOST_DIR_NAME}"
-((counter++))
+    echo -e "${BROWN}[task 3]== installing microk8s k8s-node"$counter" ==${NC}"
+    run_command_on_node "k8s-node"$counter "${HOST_DIR_NAME}/script/_install_microk8s.sh ${HOST_DIR_NAME}"
+    ((counter++))
 done
 
-echo "[task 4]== Completing microk8s =="
+echo -e "${BROWN}[task 4]== Completing microk8s ==${NC}"
 run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_complete_microk8s.sh ${HOST_DIR_NAME}"
 
 multipass list
 
 IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
 NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services go)
-echo "Try:"
-echo "curl http://$IP:$NODEPORT"
+echo -e "${GREEN}Try:${NC}"
+echo -e "${GRREN}curl http://$IP:$NODEPORT${NC}"
 
 echo "curl http://$IP:$NODEPORT" > "${HOST_DIR_NAME}/script/_test.sh"
 chmod +x "${HOST_DIR_NAME}/script/_test.sh"

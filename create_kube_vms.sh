@@ -22,7 +22,7 @@ nodeHddGb=10Gb
 #Include functions
 source $(dirname $0)/script/__functions.sh
 
-echo -e "${BROWN}Check prerequisites${NC}"
+msg_warn "Check prerequisites..."
 
 #Check prerequisites
 check_command_exists "multipass"
@@ -31,7 +31,7 @@ check_command_exists "multipass"
 rm -rf "${HOST_DIR_NAME}/script/_test.sh"
 
 
-echo -e "${BROWN}== Creating vms cluster${NC}"
+msg_warn "Creating vms cluster"
 multipass launch -m $mainRam -d $mainHddGb -c $mainCpu -n k8s-main
 
 #Create vms
@@ -45,7 +45,8 @@ done
 #Create host file
 multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > ${HOST_DIR_NAME}/config/hosts
 
-echo -e "${BROWN}[task 1]== mount host drive with installation scripts ==${NC}"
+msg_info "[Task 1]"
+msg_warn "Mount host drive with installation scripts"
 
 multipass mount ${HOST_DIR_NAME} k8s-main
 
@@ -57,32 +58,35 @@ do
     ((counter++))
 done
 
-echo -e "${BROWN}[task 2]== installing microk8s on k8s-main ==${NC}"
+msg_info "[Task 2]"
+msg_warn "Installing microk8s on k8s-main"
 run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_install_microk8s.sh ${HOST_DIR_NAME}"
 
-echo -e "${BROWN}*** installing kuberbetes on worker's node ***${NC}"
+msg_info "[Task 3]"
+msg_info "*** Installing kuberbetes on worker's node ***"
 
 counter=1
 while [ $counter -le $instances ]
 do
     rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
-    echo -e "${BROWN}[task 3]== Generate join cluster command k8s-main ==${NC}"
+    msg_warn "Generate join cluster command k8s-main"
     run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_join_cluster_helper.sh ${HOST_DIR_NAME}"
 
-    echo -e "${BROWN}[task 3]== installing microk8s k8s-node"$counter" ==${NC}"
+    msg_warn "installing microk8s k8s-node"$counter""
     run_command_on_node "k8s-node"$counter "${HOST_DIR_NAME}/script/_install_microk8s.sh ${HOST_DIR_NAME}"
     ((counter++))
 done
 
-echo -e "${BROWN}[task 4]== Completing microk8s ==${NC}"
+msg_info "[Task 4]"
+msg_warn "Completing microk8s"
 run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_complete_microk8s.sh ${HOST_DIR_NAME}"
 
 multipass list
 
 IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
 NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services go)
-echo -e "${GREEN}Try:${NC}"
-echo -e "${GRREN}curl http://$IP:$NODEPORT${NC}"
+msg_warn "Try:"
+msg_info "curl -s http://$IP:$NODEPORT"
 
-echo "curl http://$IP:$NODEPORT" > "${HOST_DIR_NAME}/script/_test.sh"
+echo "curl -s http://$IP:$NODEPORT" > "${HOST_DIR_NAME}/script/_test.sh"
 chmod +x "${HOST_DIR_NAME}/script/_test.sh"

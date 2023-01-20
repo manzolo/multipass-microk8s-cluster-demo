@@ -1,5 +1,7 @@
 #!/bin/bash
+source $(dirname $0)/__functions.sh
 HOST_DIR_NAME=$1
+
 #NET=10.0.0 # internal subnet of virtual machines
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
@@ -52,8 +54,8 @@ else
     sudo microk8s enable dns
     sudo ${HOST_DIR_NAME}/script/_join_node.sh &
     BACK_PID=$!
-    while kill -0 $BACK_PID ; do
-        echo "Still trying to join..."
+    while kill -0 $BACK_PID > /dev/null 2>&1 /dev/null ; do
+        msg_warn "Still trying to join..."
         sleep 10
     done
 fi

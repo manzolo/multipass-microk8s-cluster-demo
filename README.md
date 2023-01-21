@@ -122,7 +122,6 @@ Infer repository core for addon dns
 Enabling DNS
 Using host configuration from /run/systemd/resolve/resolv.conf
 Applying manifest
-error: Get &quot;https://127.0.0.1:16443/openapi/v2?timeout=32s&quot;: dial tcp 127.0.0.1:16443: connect: connection refused - error from a previous attempt: unexpected EOF
 <font color="#A2734C">Still trying to join...</font>
 Contacting cluster at k8s-main
 <font color="#A2734C">Still trying to join...</font>

@@ -77,6 +77,9 @@ do
     ((counter++))
 done
 
+msg_warn "Ready for deployment..."
+sleep 60
+
 msg_info "[Task 4]"
 msg_warn "Completing microk8s"
 run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_complete_microk8s.sh ${HOST_DIR_NAME}"

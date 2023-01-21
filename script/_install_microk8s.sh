@@ -28,6 +28,13 @@ sudo swapoff -a
 sudo snap install microk8s --classic --stable
 # add user to microk8s sudoers group
 sudo usermod -a -G microk8s ubuntu
+
+group=microk8s
+
+if [ $(id -gn) != $group ]; then
+  exec sg $group "$0 $*"
+fi
+
 #sudo chown -f -R ubuntu ~/.kube
 #newgrp microk8s
 #sudo microk8s status --wait-ready
@@ -46,14 +53,14 @@ sudo snap alias microk8s.kubectl kubectl
 sudo snap alias microk8s.kubectl k
 
 if test "$(hostname)" = "k8s-main"
-then sudo microk8s enable dns dashboard helm
+then microk8s enable dns dashboard helm
     sudo cp ${HOST_DIR_NAME}/config/hosts /etc/hosts
     #sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
     #sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'
 else 
     sudo cp ${HOST_DIR_NAME}/config/hosts /etc/hosts
-    sudo microk8s enable dns
-    sudo ${HOST_DIR_NAME}/script/_join_node.sh &
+    microk8s enable dns
+    ${HOST_DIR_NAME}/script/_join_node.sh &
     BACK_PID=$!
     while kill -0 $BACK_PID > /dev/null 2>&1 /dev/null ; do
         msg_warn "Still trying to join..."

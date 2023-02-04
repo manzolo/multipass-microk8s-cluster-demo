@@ -293,3 +293,5 @@ $ curl -s http://10.65.7.66:31001
 $ cd multipass-microk8s-cluster-demo
 ./destroy_kube_vms.sh
 ```
+## Demo video
+[![Watch demo](http://img.youtube.com/vi/DgNdGkz17pI/0.jpg)](http://www.youtube.com/watch?v=DgNdGkz17pI "Demo video")

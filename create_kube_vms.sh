@@ -6,17 +6,17 @@ HOST_DIR_NAME=${PWD}
 #Number of nodes
 instances="${1:-2}"
 #Number of Cpu for main VM
-mainCpu=4
+mainCpu=${2:-2}
 #GB of RAM for main VM
-mainRam=4Gb
+mainRam=${3:-2Gb}
 #GB of HDD for main VM
-mainHddGb=10Gb
+mainHddGb=${4:-10Gb}
 #Number of Cpu for node VM
-nodeCpu=2
+nodeCpu=${5:-1}
 #GB of RAM for node VM
-nodeRam=2Gb
+nodeRam=${6:-1Gb}
 #GB of HDD for main VM
-nodeHddGb=10Gb
+nodeHddGb=${7:-5Gb}
 #--------------------------------------------------------------------------
 
 #Include functions

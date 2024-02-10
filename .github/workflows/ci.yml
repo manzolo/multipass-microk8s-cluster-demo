@@ -2,17 +2,21 @@ on:
   push:
   pull_request:
     branches: [main]
+
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Install project dependencies
         shell: bash
         run: |
           brew install --cask multipass
           hash -r
+
       - name: Wait for multipass to be up
         shell: bash
         run: |
@@ -20,18 +24,19 @@ jobs:
             echo 'multipass is not running, will check again in 2 seconds'
             sleep 2
           done
+
       - name: Download source
         uses: actions/checkout@v2
+
       - name: Create cluster
         run: ./create_kube_vms.sh
+
       - name: Test cluster
-        shell: bash
         run: |
-          results=1
-          while [ $results -le 10 ]
-          do
-          "./script/_test.sh"
-          ((results++))
+          for i in {1..10}; do
+            sleep 10
+            ./script/_test.sh || exit 1
           done
+
       - name: Destroy cluster
         run: ./destroy_kube_vms.sh

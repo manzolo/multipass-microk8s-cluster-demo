@@ -22,7 +22,7 @@ HOST_DIR_NAME=$1
 #        addresses: [$NET.$OWN_IP/24] 
 #EOF
 
-sudo netplan apply
+#sudo netplan apply
 #sudo apt install nfs-common -y
 sudo swapoff -a
 sudo snap install microk8s --classic --stable

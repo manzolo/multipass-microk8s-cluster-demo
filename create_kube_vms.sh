@@ -87,7 +87,7 @@ run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_complete_microk8s.sh ${
 multipass list
 
 IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
-NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go)
+NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
 msg_warn "Try:"
 msg_info "curl -s http://$IP:$NODEPORT"
 

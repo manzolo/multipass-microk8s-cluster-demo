@@ -3,7 +3,7 @@
 HOST_DIR_NAME=${PWD}
 
 #Include functions
-source $(dirname $0)/script/__functions.sh
+source $(dirname $0)/../script/__functions.sh
 
 msg_warn "Check prerequisites..."
 #Check prerequisites

@@ -13,7 +13,7 @@ kubectl rollout status deployment/demo-go -n demo-go
 kubectl apply -f ${HOST_DIR_NAME}/config/demo-php.yaml
 kubectl rollout status deployment/demo-php -n demo-php
 
-#kubectl scale deployment demo-go --replicas=6
+#kubectl scale deployment demo-go --replicas=6 -n demo-go
 msg_warn "Waiting deploy start..."
 sleep 10
 msg_warn "kubectl get node"

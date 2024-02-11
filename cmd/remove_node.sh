@@ -4,7 +4,7 @@ HOST_DIR_NAME=${PWD}
 MULTIPASS_VM=$1
 
 #Include functions
-source $(dirname $0)/script/__functions.sh
+source $(dirname $0)/../script/__functions.sh
 
 msg_warn "Check prerequisites..."
 

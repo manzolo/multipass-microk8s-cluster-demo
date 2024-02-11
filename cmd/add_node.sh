@@ -8,7 +8,7 @@ NODE_RAM=${3:-2Gb}
 NODE_HDD_GB=${4:-10Gb}
 
 # Include le funzioni
-source $(dirname $0)/script/__functions.sh
+source $(dirname $0)/../script/__functions.sh
 
 # Controlla i prerequisiti
 msg_warn "Checking prerequisites..."
@@ -39,7 +39,7 @@ multipass mount ${HOST_DIR_NAME} k8s-node$counter || { msg_error "Failed to moun
 
 # Esegui l'installazione di Kubernetes sul nodo worker
 msg_info "Installing Kubernetes on the worker node"
-rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
+rm -rf ${HOST_DIR_NAME}/../script/_join_node.sh
 msg_warn "Generating join cluster command for k8s-main"
 if ! run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_join_cluster_helper.sh ${HOST_DIR_NAME} ${NODE_TYPE}"; then
     msg_error "Failed to generate join cluster command. Exiting."
@@ -55,6 +55,6 @@ fi
 # Visualizza l'indirizzo IP e la porta del servizio
 multipass list
 IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
-NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go)
+NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
 msg_warn "Try:"
 msg_info "curl -s http://$IP:$NODEPORT"

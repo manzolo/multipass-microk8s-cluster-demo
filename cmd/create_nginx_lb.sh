@@ -3,7 +3,7 @@
 HOST_DIR_NAME=${PWD}
 
 #Include functions
-source $(dirname $0)/script/__functions.sh
+source $(dirname $0)/../script/__functions.sh
 
 # Launch a new VM with the specified requirements
 multipass launch -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer

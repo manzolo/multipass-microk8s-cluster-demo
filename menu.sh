@@ -2,11 +2,13 @@
 
 # Function for command selection
 select_command() {
-    OPTION=$(whiptail --title "Cluster Management" --menu "Select a command:" 15 60 5 \
+    OPTION=$(whiptail --title "Cluster Management" --menu "Select a command:" 15 60 7 \
     "Create Cluster" "Create a cluster" \
     "Destroy Cluster" "Destroy a cluster" \
     "Start Cluster" "Start a cluster" \
     "Stop Cluster" "Stop a cluster" \
+    "Create Nginx Load Balancer" "Create Nginx load balancer" \
+    "Destroy Nginx Load Balancer" "Destroy Nginx load balancer" \
     "Exit" "Exit the program" 3>&1 1>&2 2>&3)
 
     if [ $? -eq 0 ]; then
@@ -22,6 +24,12 @@ select_command() {
                 ;;
             "Stop Cluster")
                 ./stop_cluster.sh || echo "Error during execution of stop_cluster.sh"
+                ;;
+            "Create Nginx Load Balancer")
+                ./create_nginx_lb.sh || echo "Error during execution of create_nginx_lb.sh"
+                ;;
+            "Destroy Nginx Load Balancer")
+                ./destroy_nginx_lb.sh || echo "Error during execution of destroy_nginx_lb.sh"
                 ;;
             "Exit")
                 echo "Exiting..."

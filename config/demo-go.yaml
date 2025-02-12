@@ -42,7 +42,7 @@ spec:
     spec:
       containers:
       - name: demo-go
-        image: manzolo/demo-go:0.1.0
+        image: manzolo/demo-go:0.1.2
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

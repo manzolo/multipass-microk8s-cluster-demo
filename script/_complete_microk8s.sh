@@ -1,16 +1,14 @@
 #!/bin/bash
 source $(dirname $0)/__functions.sh
 
-HOST_DIR_NAME=$1
+rm -rf script/_join_node.sh
+rm -rf script/_test.sh
+rm -rf config/hosts
 
-rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
-rm -rf ${HOST_DIR_NAME}/script/_test.sh
-rm -rf ${HOST_DIR_NAME}/config/hosts
-
-kubectl apply -f ${HOST_DIR_NAME}/config/demo-go.yaml
+kubectl apply -f config/demo-go.yaml
 kubectl rollout status deployment/demo-go -n demo-go
 
-kubectl apply -f ${HOST_DIR_NAME}/config/demo-php.yaml
+kubectl apply -f config/demo-php.yaml
 kubectl rollout status deployment/demo-php -n demo-php
 
 #kubectl scale deployment demo-go --replicas=6 -n demo-go

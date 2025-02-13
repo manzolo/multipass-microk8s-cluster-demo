@@ -14,9 +14,9 @@ mainHddGb=${4:-10Gb}
 #Number of Cpu for node VM
 nodeCpu=${5:-1}
 #GB of RAM for node VM
-nodeRam=${6:-1Gb}
+nodeRam=${6:-2Gb}
 #GB of HDD for main VM
-nodeHddGb=${7:-5Gb}
+nodeHddGb=${7:-10Gb}
 #--------------------------------------------------------------------------
 
 #Include functions
@@ -39,11 +39,13 @@ counter=1
 while [ $counter -le $instances ]
 do
     multipass launch -m $nodeRam -d $nodeHddGb -c $nodeCpu -n k8s-node$counter
+    #multipass stop k8s-node$counter
+    #multipass start k8s-node$counter
     ((counter++))
 done
 
 #Create host file
-multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > ${HOST_DIR_NAME}/config/hosts
+multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > config/hosts
 
 msg_info "[Task 1]"
 msg_warn "Mount host drive with installation scripts"
@@ -60,7 +62,7 @@ done
 
 msg_info "[Task 2]"
 msg_warn "Installing microk8s on k8s-main"
-run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_install_microk8s.sh ${HOST_DIR_NAME}"
+run_command_on_node "k8s-main" "script/_install_microk8s.sh"
 
 msg_info "[Task 3]"
 msg_info "*** Installing kuberbetes on worker's node ***"
@@ -68,12 +70,12 @@ msg_info "*** Installing kuberbetes on worker's node ***"
 counter=1
 while [ $counter -le $instances ]
 do
-    rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
+    rm -rf script/_join_node.sh
     msg_warn "Generate join cluster command k8s-main"
-    run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_join_cluster_helper.sh ${HOST_DIR_NAME}"
+    run_command_on_node "k8s-main" "script/_join_cluster_helper.sh"
 
     msg_warn "installing microk8s k8s-node"$counter""
-    run_command_on_node "k8s-node"$counter "${HOST_DIR_NAME}/script/_install_microk8s.sh ${HOST_DIR_NAME}"
+    run_command_on_node "k8s-node"$counter "script/_install_microk8s.sh"
     ((counter++))
 done
 
@@ -82,7 +84,7 @@ sleep 60
 
 msg_info "[Task 4]"
 msg_warn "Completing microk8s"
-run_command_on_node "k8s-main" "${HOST_DIR_NAME}/script/_complete_microk8s.sh ${HOST_DIR_NAME}"
+run_command_on_node "k8s-main" "script/_complete_microk8s.sh"
 
 multipass list
 

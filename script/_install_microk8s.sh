@@ -1,6 +1,5 @@
 #!/bin/bash
 source $(dirname $0)/__functions.sh
-HOST_DIR_NAME=$1
 
 #NET=10.0.0 # internal subnet of virtual machines
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
@@ -57,13 +56,13 @@ then
     microk8s enable dns
     microk8s enable dashboard
     microk8s enable helm
-    sudo cp ${HOST_DIR_NAME}/config/hosts /etc/hosts
+    sudo cp config/hosts /etc/hosts
     #sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
     #sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'
 else 
-    sudo cp ${HOST_DIR_NAME}/config/hosts /etc/hosts
+    sudo cp config/hosts /etc/hosts
     microk8s enable dns
-    ${HOST_DIR_NAME}/script/_join_node.sh &
+    script/_join_node.sh &
     BACK_PID=$!
     while kill -0 $BACK_PID > /dev/null 2>&1 /dev/null ; do
         msg_warn "Still trying to join..."

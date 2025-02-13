@@ -42,7 +42,7 @@ spec:
     spec:
       containers:
       - name: demo-php
-        image: manzolo/apache-php-demo:0.1.0
+        image: manzolo/apache-php-demo:0.1.1
         imagePullPolicy: Always
         ports:
         - containerPort: 80

@@ -1,7 +1,6 @@
 #!/bin/bash
 source $(dirname $0)/__functions.sh
 
-HOST_DIR_NAME=$1
 IP="$(hostname)"
 
 NODE_TYPE=${2:-worker} # If not specified, node type will default to 'worker'
@@ -22,7 +21,7 @@ JOINCMD=$(sudo microk8s add-node | sed '/microk8s/p' | sed '3!d' | sed -r 's|mic
 JOINCMD+=" --${NODE_TYPE}"
 
 # Write the join command to the _join_node.sh file
-echo "${JOINCMD##Join node with: }" > ${HOST_DIR_NAME}/script/_join_node.sh
+echo "${JOINCMD##Join node with: }" > script/_join_node.sh
 
 # Add execute permissions to the script
-chmod a+x ${HOST_DIR_NAME}/script/_join_node.sh
+chmod a+x script/_join_node.sh

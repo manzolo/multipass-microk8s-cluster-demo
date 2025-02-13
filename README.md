@@ -4,13 +4,13 @@ This is a demonstration of creating a [microk8s](https://microk8s.io) cluster in
 From an idea of [Olawepo Olayemi](https://sejuba.medium.com/installing-kubernetes-microk8-cluster-on-multipass-vms-59978830692d)
 
 ## Prerequisites
-* [Ubuntu 22.04](https://ubuntu.com/download)
+* [Ubuntu 24.04](https://ubuntu.com/download)
 * [multipass](https://multipass.run/)
 * Git
 
 ## Tested on
-* Ubuntu 22.04 
-* Microk8s (1.26/stable)
+* Ubuntu 24.04 
+* Microk8s (1.31/stable)
 
 ## Install
 ```bash

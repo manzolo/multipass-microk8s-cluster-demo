@@ -89,9 +89,14 @@ run_command_on_node "k8s-main" "script/_complete_microk8s.sh"
 multipass list
 
 IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
-NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
-msg_warn "Try:"
-msg_info "curl -s http://$IP:$NODEPORT"
+NODEPORT_GO=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
+NODEPORT_PHP=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
+msg_warn "Try golang service:"
+msg_info "curl -s http://$IP:$NODEPORT_GO"
 
-echo "curl -s http://$IP:$NODEPORT" > "${HOST_DIR_NAME}/script/_test.sh"
-chmod +x "${HOST_DIR_NAME}/script/_test.sh"
+echo "curl -s http://$IP:$NODEPORT_GO" > "script/_test.sh"
+chmod +x "script/_test.sh"
+script/_test.sh
+
+msg_warn "Try php response on browser:"
+msg_info "http://$IP:$NODEPORT_PHP"

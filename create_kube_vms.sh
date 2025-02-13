@@ -98,5 +98,7 @@ echo "curl -s http://$IP:$NODEPORT_GO" > "script/_test.sh"
 chmod +x "script/_test.sh"
 script/_test.sh
 
+echo
+
 msg_warn "Try php response on browser:"
 msg_info "http://$IP:$NODEPORT_PHP"

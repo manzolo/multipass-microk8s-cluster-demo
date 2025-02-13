@@ -52,7 +52,7 @@ docker run -d \
   -p 443:443 \
   --privileged \
   --name rancher \
-  rancher/rancher:v2.8.2
+  rancher/rancher:v2.9.2
 EOF
 
 echo
@@ -63,9 +63,9 @@ VM_IP=$(multipass info rancher | grep IPv4 | awk '{print $2}')
 
 # Print instructions to add to the host's /etc/hosts file
 msg_warn "Add the following line to the /etc/hosts file of the host:"
-msg_info "$VM_IP rancher"
+msg_info "$VM_IP rancher.loc"
 
-msg_warn "Please wait while Rancher starts up, then navigate to http://rancher"
+msg_warn "Please wait while Rancher starts up, then navigate to https://rancher.loc"
 msg_warn "multipass shell rancher"
 msg_warn 'docker logs rancher 2>&1 | grep "Bootstrap Password:"'
 

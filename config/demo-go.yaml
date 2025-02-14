@@ -12,7 +12,7 @@ metadata:
   namespace: demo-go
 spec:
   rules:
-  - host: demo-go.local
+  - host: demo-go.loc
     http:
       paths:
       - path: /

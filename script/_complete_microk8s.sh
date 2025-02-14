@@ -16,7 +16,7 @@ msg_warn "Waiting deploy start..."
 sleep 10
 msg_warn "kubectl get node"
 kubectl get node
-msg_info "If you want to scale 'demo-go' to 20 pod"
+msg_info "If you want to scale 'demo-go' to 20 pods"
 msg_warn "multipass exec k8s-main -- kubectl scale deployment demo-go --replicas=20 -n demo-go"
 msg_warn "multipass exec k8s-main -- kubectl get all -o wide -n demo-go"
 

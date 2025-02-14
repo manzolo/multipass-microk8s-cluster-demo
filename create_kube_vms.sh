@@ -34,18 +34,21 @@ rm -rf "${HOST_DIR_NAME}/script/_test.sh"
 msg_warn "Creating vms cluster"
 multipass launch -m $mainRam -d $mainHddGb -c $mainCpu -n k8s-main
 
+multipass info k8s-main
+
 #Create vms
 counter=1
 while [ $counter -le $instances ]
 do
     multipass launch -m $nodeRam -d $nodeHddGb -c $nodeCpu -n k8s-node$counter
+    multipass info k8s-node$counter
     #multipass stop k8s-node$counter
     #multipass start k8s-node$counter
     ((counter++))
 done
 
 #Create host file
-multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > config/hosts
+multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var".loc"}' > config/hosts
 
 msg_info "[Task 1]"
 msg_warn "Mount host drive with installation scripts"
@@ -85,6 +88,15 @@ sleep 60
 msg_info "[Task 4]"
 msg_warn "Completing microk8s"
 run_command_on_node "k8s-main" "script/_complete_microk8s.sh"
+msg_warn "Umount k8s-main:$(multipass info k8s-main | grep Mounts | awk '{print $4}')"
+multipass umount k8s-main:$(multipass info k8s-main | grep Mounts | awk '{print $4}')
+counter=1
+while [ $counter -le $instances ]
+do
+    msg_warn "Umount "k8s-node"$counter -> $(multipass info "k8s-node$counter" | grep Mounts | awk '{print $4}')"
+    multipass umount "k8s-node$counter:$(multipass info "k8s-node$counter" | grep Mounts | awk '{print $4}')"
+    ((counter++))
+done
 
 multipass list
 

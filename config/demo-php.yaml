@@ -12,7 +12,7 @@ metadata:
   namespace: demo-php
 spec:
   rules:
-  - host: demo-php.local
+  - host: demo-php.loc
     http:
       paths:
       - path: /

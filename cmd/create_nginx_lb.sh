@@ -1,11 +1,10 @@
 #!/bin/bash
+set -e
 
 HOST_DIR_NAME=${PWD}
 
-#Include functions
+# Include functions
 source $(dirname $0)/../script/__functions.sh
-
-#K8S_HOSTS=$(multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var".loc"}')
 
 # Definisci K8S_HOSTS includendo solo quelle macchine che hanno un IP valido
 K8S_HOSTS=$(multipass list \
@@ -25,16 +24,6 @@ if [ -n "$missing_ips" ]; then
   echo "$missing_ips" >&2
   exit 1
 fi
-
-# Se tutte le macchine hanno un IP, costruisce la lista con il formato desiderato
-#K8S_HOSTS=$(multipass list \
-#  | grep "k8s-" \
-#  | grep -E -v "Name|\-\-" \
-#  | awk '{printf "%s\t%s.loc\n", $3, $1}')
-
-# Stampa il contenuto di K8S_HOSTS
-#msg_info "Generated /etc/hosts entries:"
-#echo "$K8S_HOSTS"
 
 # Launch a new VM with the specified requirements
 multipass launch -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
@@ -57,10 +46,10 @@ sudo cp /mnt/host-config/nginx_lb.conf /etc/nginx/sites-available/cluster-balanc
 # Create a symbolic link to enable the site
 sudo ln -s /etc/nginx/sites-available/cluster-balancer /etc/nginx/sites-enabled/
 
+echo "$K8S_HOSTS" | sudo tee -a /etc/hosts
+
 # Verify the correctness of the Nginx configuration
 sudo nginx -t
-
-echo "$K8S_HOSTS" | sudo tee -a /etc/hosts
 
 # Reload Nginx to apply the new configuration
 sudo systemctl reload nginx
@@ -85,12 +74,40 @@ echo
 msg_warn "Add the following line to the /etc/hosts file of the host:"
 msg_warn "$VM_IP nginx-cluster-balancer demo-go.loc demo-php.loc"
 echo
-# Verifica se la riga esiste già e sostituisci l'IP
+
+# Ask the user if they want to execute the command
+while true; do
+    read -r -p "Do you want to execute this command now? (y/n): " choice
+    case "$choice" in
+        y|Y)
+            break  # Exit the loop if the user says yes
+            ;;
+        n|N)
+            echo "Skipping /etc/hosts update."
+            exit 0 # Return 0 to indicate that the operation was skipped, not an error.
+            ;;
+        *)
+            echo "Invalid input. Please enter 'y' or 'n'."
+            ;;
+    esac
+done
+
+
+# Check if the line already exists and update or add it
 if grep -q "nginx-cluster-balancer demo-go.loc demo-php.loc" /etc/hosts; then
-    #msg_warn "La riga esiste già in /etc/hosts. Sostituisco l'IP esistente con $VM_IP..."
-    msg_info 'sudo sed -i.bak -E "/nginx-cluster-balancer demo-go.loc demo-php.loc/ s/^[0-9.]+/'$VM_IP'/" /etc/hosts'
-    #msg_info "Operazione completata. Backup del file originale creato come /etc/hosts.bak."
+    msg_info "Updating /etc/hosts..."
+    if sudo sed -i.bak -E "/nginx-cluster-balancer demo-go.loc demo-php.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
+        msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
+    else
+        msg_error "Error updating /etc/hosts."
+        exit 1 # 1 to indicate an error
+    fi
 else
-    #msg_info "La riga non esiste in /etc/hosts. Aggiungo una nuova riga..."
-    msg_info 'echo "'$VM_IP' nginx-cluster-balancer demo-go.loc demo-php.loc" | sudo tee -a /etc/hosts'
+    msg_info "Adding entry to /etc/hosts..."
+    if echo "$VM_IP nginx-cluster-balancer demo-go.loc demo-php.loc" | sudo tee -a /etc/hosts; then
+        msg_info "Added entry to /etc/hosts."
+    else
+        msg_error "Error adding entry to /etc/hosts."
+        exit 1 # 1 to indicate an error
+    fi
 fi

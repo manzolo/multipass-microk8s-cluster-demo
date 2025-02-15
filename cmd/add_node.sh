@@ -45,13 +45,13 @@ multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%
 # Monta il disco host sulla nuova istanza
 msg_info "Mounting host drive with installation scripts"
 multipass mount ${HOST_DIR_NAME} k8s-node$counter:${VM_MOUNT_DIR} || { msg_error "Failed to mount host drive on the new instance. Exiting."; exit 1; }
-multipass mount ${HOST_DIR_NAME} k8s-main:${VM_MOUNT_DIR} || { msg_error "Failed to mount host drive on k8s-main. Exiting."; exit 1; }
+multipass mount ${HOST_DIR_NAME} ${VM_MAIN_NAME}:${VM_MOUNT_DIR} || { msg_error "Failed to mount host drive on ${VM_MAIN_NAME}. Exiting."; exit 1; }
 
 # Esegui l'installazione di Kubernetes sul nodo worker
 msg_info "Installing Kubernetes on the worker node"
 rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
-msg_warn "Generating join cluster command for k8s-main"
-if ! run_command_on_node "k8s-main" "${VM_MOUNT_DIR}/script/_join_cluster_helper.sh ${VM_MOUNT_DIR} ${NODE_TYPE}"; then
+msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
+if ! run_command_on_node "${VM_MAIN_NAME}" "${VM_MOUNT_DIR}/script/_join_cluster_helper.sh ${VM_MOUNT_DIR} ${NODE_TYPE}"; then
     msg_error "Failed to generate join cluster command. Exiting."
     exit 1
 fi
@@ -62,13 +62,13 @@ if ! run_command_on_node "k8s-node$counter" "${VM_MOUNT_DIR}/script/_install_mic
     exit 1
 fi
 
-multipass umount k8s-main:$(multipass info k8s-main | grep Mounts | awk '{print $4}')
+multipass umount ${VM_MAIN_NAME}:$(multipass info ${VM_MAIN_NAME} | grep Mounts | awk '{print $4}')
 multipass umount "k8s-node$counter:$(multipass info "k8s-node$counter" | grep Mounts | awk '{print $4}')"
 
 
 # Visualizza l'indirizzo IP e la porta del servizio
 multipass list
-IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
-NODEPORT=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
+IP=$(multipass info ${VM_MAIN_NAME} | grep IPv4 | awk '{print $2}')
+NODEPORT=$(multipass exec ${VM_MAIN_NAME} -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
 msg_warn "Try:"
 msg_info "curl -s http://$IP:$NODEPORT"

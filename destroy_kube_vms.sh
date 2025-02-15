@@ -1,5 +1,8 @@
 #!/bin/bash
-
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
 #Include functions
 source $(dirname $0)/script/__functions.sh
 
@@ -10,8 +13,8 @@ msg_warn "remove $node"
 multipass delete $node
 done
 
-echo "remove k8s-main"
-multipass delete k8s-main
+echo "remove ${VM_MAIN_NAME}"
+multipass delete ${VM_MAIN_NAME}
 multipass purge
 multipass list
 

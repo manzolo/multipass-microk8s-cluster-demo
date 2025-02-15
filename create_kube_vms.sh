@@ -61,6 +61,19 @@ create_vm() {
     multipass info $vm_name
 }
 
+# Function to clone a VM
+clone_vm() {
+    local vm_src=$VM_MAIN_NAME
+    local vm_dst=$1
+
+    msg_warn "Clone VM: $vm_src"
+    if ! multipass clone $vm_src -n $vm_dst; then
+        msg_error "Failed to clone VM: $vm_src"
+        exit 1
+    fi
+    multipass info $vm_dst
+}
+
 # Function to mount host directory
 mount_host_dir() {
     local vm_name=$1
@@ -73,12 +86,16 @@ mount_host_dir() {
 }
 
 # Create main VM
-create_vm "k8s-main" "$mainRam" "$mainHddGb" "$mainCpu"
+create_vm $VM_MAIN_NAME "$mainRam" "$mainHddGb" "$mainCpu"
+multipass stop $VM_MAIN_NAME
 
 # Create node VMs
 for ((counter=1; counter<=instances; counter++)); do
-    create_vm "k8s-node$counter" "$nodeRam" "$nodeHddGb" "$nodeCpu"
+    clone_vm "k8s-node$counter"
+    multipass start "k8s-node$counter"
 done
+
+multipass start $VM_MAIN_NAME
 
 # Create hosts file
 msg_warn "Generating /etc/hosts entries..."
@@ -86,21 +103,21 @@ multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%
 
 # Mount host directory
 msg_info "=== Task 1: Mount host drive with installation scripts ==="
-mount_host_dir "k8s-main"
+mount_host_dir $VM_MAIN_NAME
 for ((counter=1; counter<=instances; counter++)); do
     mount_host_dir "k8s-node$counter"
 done
 
 # Install microk8s
-msg_info "=== Task 2: Installing microk8s on k8s-main ==="
-run_command_on_node "k8s-main" "script/_install_microk8s.sh"
+msg_info "=== Task 2: Installing microk8s on ${VM_MAIN_NAME} ==="
+run_command_on_node $VM_MAIN_NAME "script/_install_microk8s.sh"
 
 # Join nodes to cluster
 msg_info "=== Task 3: Installing Kubernetes on worker nodes ==="
 for ((counter=1; counter<=instances; counter++)); do
     rm -rf script/_join_node.sh
-    msg_warn "Generating join cluster command for k8s-main"
-    run_command_on_node "k8s-main" "script/_join_cluster_helper.sh"
+    msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
+    run_command_on_node $VM_MAIN_NAME "script/_join_cluster_helper.sh"
 
     msg_warn "Installing microk8s on k8s-node$counter"
     run_command_on_node "k8s-node$counter" "script/_install_microk8s.sh"
@@ -108,17 +125,17 @@ done
 
 # Wait for cluster to be ready
 msg_warn "Waiting for microk8s to be ready..."
-while ! multipass exec k8s-main -- microk8s status --wait-ready; do
+while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready; do
     sleep 10
 done
 
 # Complete microk8s setup
 msg_info "=== Task 4: Completing microk8s setup ==="
-run_command_on_node "k8s-main" "script/_complete_microk8s.sh"
+run_command_on_node $VM_MAIN_NAME "script/_complete_microk8s.sh"
 
 # Unmount directories
 msg_warn "Unmounting directories..."
-multipass umount k8s-main:$(multipass info k8s-main | grep Mounts | awk '{print $4}')
+multipass umount ${VM_MAIN_NAME}:$(multipass info ${VM_MAIN_NAME} | grep Mounts | awk '{print $4}')
 for ((counter=1; counter<=instances; counter++)); do
     multipass umount "k8s-node$counter:$(multipass info "k8s-node$counter" | grep Mounts | awk '{print $4}')"
 done
@@ -127,9 +144,9 @@ done
 multipass list | grep -i "k8s-"
 
 # Test services
-IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
-NODEPORT_GO=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
-NODEPORT_PHP=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
+IP=$(multipass info ${VM_MAIN_NAME} | grep IPv4 | awk '{print $2}')
+NODEPORT_GO=$(multipass exec ${VM_MAIN_NAME} -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
+NODEPORT_PHP=$(multipass exec ${VM_MAIN_NAME} -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
 
 # MOTD generation with color codes
 MOTD_COMMANDS=$(cat <<EOF
@@ -148,15 +165,15 @@ $(tput setaf 1)kubectl get all -o wide -n demo-go$(tput sgr0)
 EOF
 )
 
-msg_warn "Add k8s-main MOTD:"
-multipass exec k8s-main -- sudo tee -a /home/ubuntu/.bashrc <<EOF
+msg_warn "Add ${VM_MAIN_NAME} MOTD:"
+multipass exec ${VM_MAIN_NAME} -- sudo tee -a /home/ubuntu/.bashrc <<EOF
 echo ""
-echo "Commands to run on k8s-main:"
+echo "Commands to run on ${VM_MAIN_NAME}:"
 echo "$MOTD_COMMANDS"
 EOF
 
-msg_warn "Enter on k8s-main:"
-msg_info "multipass shell k8s-main"
+msg_warn "Enter on ${VM_MAIN_NAME}:"
+msg_info "multipass shell ${VM_MAIN_NAME}"
 
 msg_warn "Testing Golang service:"
 msg_info "curl -s http://$IP:$NODEPORT_GO"

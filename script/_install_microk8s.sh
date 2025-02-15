@@ -1,6 +1,11 @@
 #!/bin/bash
 source $(dirname $0)/__functions.sh
 
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
 #NET=10.0.0 # internal subnet of virtual machines
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
@@ -51,7 +56,7 @@ sudo snap alias microk8s.helm3 helm3
 sudo snap alias microk8s.kubectl kubectl
 sudo snap alias microk8s.kubectl k
 
-if test "$(hostname)" = "k8s-main"
+if test "$(hostname)" = "${VM_MAIN_NAME}"
 then 
     microk8s enable dns
     microk8s enable dashboard

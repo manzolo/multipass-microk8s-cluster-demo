@@ -1,6 +1,11 @@
 #!/bin/bash
 source $(dirname $0)/__functions.sh
 
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
 rm -rf script/_join_node.sh
 rm -rf script/_test.sh
 rm -rf config/hosts
@@ -17,11 +22,11 @@ sleep 10
 msg_warn "kubectl get node"
 kubectl get node
 msg_info "If you want to scale 'demo-go' to 20 pods"
-msg_warn "multipass exec k8s-main -- kubectl scale deployment demo-go --replicas=20 -n demo-go"
-msg_warn "multipass exec k8s-main -- kubectl get all -o wide -n demo-go"
+msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=20 -n demo-go"
+msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-go"
 
 kubectl get all -o wide -n demo-go
-msg_warn "multipass exec k8s-main -- kubectl get all -o wide -n demo-php"
+msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-php"
 kubectl get all -o wide -n demo-php
 
 

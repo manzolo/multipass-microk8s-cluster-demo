@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
 NC=$'\033[0m' # No Color
 
 function msg_info() {

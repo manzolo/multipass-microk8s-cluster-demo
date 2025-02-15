@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
 HOST_DIR_NAME=${PWD}
 
 #Include functions
@@ -10,7 +15,7 @@ msg_warn "Check prerequisites..."
 check_command_exists "multipass"
 
 # Stop main VM
-multipass start k8s-main
+multipass start ${VM_MAIN_NAME}
 
 # Stop all node VMs
 max_node_num=$(multipass list | grep k8s-node | awk '{print $1}' | sed 's/k8s-node//' | sort -n | tail -1)

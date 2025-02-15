@@ -18,11 +18,11 @@ check_command_exists "multipass"
 multipass start ${VM_MAIN_NAME}
 
 # Stop all node VMs
-max_node_num=$(multipass list | grep k8s-node | awk '{print $1}' | sed 's/k8s-node//' | sort -n | tail -1)
+max_node_num=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}' | sed 's/${VM_NODE_PREFIX}//' | sort -n | tail -1)
 counter=1
 
 while [ $counter -le $max_node_num ]; do
-    vm_name="k8s-node${counter}"
+    vm_name="${VM_NODE_PREFIX}${counter}"
     multipass start $vm_name
     ((counter++))
 done

@@ -11,8 +11,8 @@ msg_warn "Check prerequisites..."
 #Check prerequisites
 check_command_exists "multipass"
 
-multipass stop $MULTIPASS_VM
-multipass delete $MULTIPASS_VM
+multipass stop --force $MULTIPASS_VM
+multipass delete --purge $MULTIPASS_VM
 multipass purge
 multipass list
 

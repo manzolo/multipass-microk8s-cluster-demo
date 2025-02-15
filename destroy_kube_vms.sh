@@ -8,13 +8,13 @@ source $(dirname $0)/script/__functions.sh
 
 msg_warn "== Clean vms cluster"
 
-multipass list | grep k8s-node | awk '{print $1}' | while read node; do
+multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}' | while read node; do
 msg_warn "remove $node"
-multipass delete $node
+multipass delete --purge $node
 done
 
 echo "remove ${VM_MAIN_NAME}"
-multipass delete ${VM_MAIN_NAME}
+multipass delete --purge ${VM_MAIN_NAME}
 multipass purge
 multipass list
 

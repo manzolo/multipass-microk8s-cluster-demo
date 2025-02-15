@@ -97,8 +97,8 @@ multipass stop $VM_MAIN_NAME
 
 # Create node VMs
 for ((counter=1; counter<=instances; counter++)); do
-    clone_vm "k8s-node$counter"
-    multipass start "k8s-node$counter"
+    clone_vm "${VM_NODE_PREFIX}$counter"
+    multipass start "${VM_NODE_PREFIX}$counter"
 done
 
 multipass start $VM_MAIN_NAME
@@ -110,7 +110,7 @@ multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%
 # Mount host directory
 #msg_info "=== Task 1: Mount host drive with installation scripts ==="
 #for ((counter=1; counter<=instances; counter++)); do
-#    mount_host_dir "k8s-node$counter"
+#    mount_host_dir "${VM_NODE_PREFIX}$counter"
 #done
 
 # Join nodes to cluster
@@ -120,8 +120,8 @@ for ((counter=1; counter<=instances; counter++)); do
     msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
     run_command_on_node $VM_MAIN_NAME "script/_join_cluster_helper.sh"
 
-    msg_warn "Installing microk8s on k8s-node$counter"
-    run_command_on_node "k8s-node$counter" "script/_install_microk8s.sh"
+    msg_warn "Installing microk8s on ${VM_NODE_PREFIX}$counter"
+    run_command_on_node "${VM_NODE_PREFIX}$counter" "script/_install_microk8s.sh"
 done
 
 # Wait for cluster to be ready
@@ -138,7 +138,7 @@ run_command_on_node $VM_MAIN_NAME "script/_complete_microk8s.sh"
 msg_warn "Unmounting directories..."
 multipass umount ${VM_MAIN_NAME}:$(multipass info ${VM_MAIN_NAME} | grep Mounts | awk '{print $4}')
 for ((counter=1; counter<=instances; counter++)); do
-    multipass umount "k8s-node$counter:$(multipass info "k8s-node$counter" | grep Mounts | awk '{print $4}')"
+    multipass umount "${VM_NODE_PREFIX}$counter:$(multipass info "${VM_NODE_PREFIX}$counter" | grep Mounts | awk '{print $4}')"
 done
 
 # Display cluster info

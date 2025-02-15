@@ -42,8 +42,8 @@ check_command_exists "multipass" || { msg_error "Multipass is not installed or c
 # Pulisce i file temporanei
 rm -rf "${HOST_DIR_NAME}/script/_test.sh"
 
-# Trova il numero massimo di istanze k8s-nodeX
-max_node_num=$(multipass list | grep k8s-node | awk '{print $1}' | sed 's/k8s-node//' | sort -n | tail -1)
+# Trova il numero massimo di istanze ${VM_NODE_PREFIX}X
+max_node_num=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}' | sed "s/${VM_NODE_PREFIX}//" | sort -n | tail -1)
 
 # Avvia una nuova istanza incrementando il numero massimo
 if [ -z "$max_node_num" ]; then
@@ -56,8 +56,8 @@ mount_host_dir $VM_MAIN_NAME
 multipass stop $VM_MAIN_NAME
 
 # Create node VMs
-clone_vm "k8s-node$counter"
-multipass start "k8s-node$counter"
+clone_vm "${VM_NODE_PREFIX}$counter"
+multipass start "${VM_NODE_PREFIX}$counter"
 
 multipass start $VM_MAIN_NAME
 
@@ -71,11 +71,11 @@ rm -rf script/_join_node.sh
 msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
 run_command_on_node $VM_MAIN_NAME "script/_join_cluster_helper.sh"
 
-msg_warn "Installing microk8s on k8s-node$counter"
-run_command_on_node "k8s-node$counter" "script/_install_microk8s.sh"
+msg_warn "Installing microk8s on ${VM_NODE_PREFIX}$counter"
+run_command_on_node "${VM_NODE_PREFIX}$counter" "script/_install_microk8s.sh"
 
 multipass umount ${VM_MAIN_NAME}:$(multipass info ${VM_MAIN_NAME} | grep Mounts | awk '{print $4}')
-multipass umount "k8s-node$counter:$(multipass info "k8s-node$counter" | grep Mounts | awk '{print $4}')"
+multipass umount "${VM_NODE_PREFIX}$counter:$(multipass info "${VM_NODE_PREFIX}$counter" | grep Mounts | awk '{print $4}')"
 
 # Visualizza l'indirizzo IP e la porta del servizio
 multipass list | grep "k8s-"

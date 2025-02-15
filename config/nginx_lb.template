@@ -1,7 +1,5 @@
 upstream k8s-cluster-go {
     server ${VM_MAIN_NAME}.loc:31001;
-    server ${VM_NODE_PREFIX}1.loc:31001;
-    server ${VM_NODE_PREFIX}2.loc:31001;
 }
 
 server {
@@ -19,8 +17,6 @@ server {
 
 upstream k8s-cluster-php {
     server ${VM_MAIN_NAME}.loc:31002;
-    server ${VM_NODE_PREFIX}1.loc:31002;
-    server ${VM_NODE_PREFIX}2.loc:31002;
 }
 
 server {

@@ -8,11 +8,13 @@ fi
 
 HOST_DIR_NAME=${PWD}
 
-# Default values (fallback if not in .env) - These are now overridden by .env
-DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}" # Use .env var if set, else default
-
 # Include functions
 source $(dirname $0)/../script/__functions.sh
+
+# Default values (fallback if not in .env) - These are now overridden by .env
+DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}" # Use .env var if set, else default
+# Launch a new VM with the specified requirements
+multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
 
 # Definisci K8S_HOSTS includendo solo quelle macchine che hanno un IP valido
 K8S_HOSTS=$(multipass list \
@@ -27,19 +29,26 @@ missing_ips=$(multipass list \
   | awk '$3 == "-" || $3 == "--" || $3 == ""')
 
 if [ -n "$missing_ips" ]; then
-  #multipass list
   echo "Errore: almeno una VM non ha un IP:" >&2
   echo "$missing_ips" >&2
   exit 1
 fi
 
-# Launch a new VM with the specified requirements
-multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
+# Trova tutte le istanze esistenti di ${VM_NODE_PREFIX}X
+node_instances=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}')
 
+# Genera il file di configurazione di Nginx
+nginx_config="${HOST_DIR_NAME}/config/nginx_lb.conf"
+
+# Sostituisci le variabili d'ambiente nel template
 VARIABLES_TO_REPLACE='$VM_MAIN_NAME $VM_NODE_PREFIX'
+envsubst "$VARIABLES_TO_REPLACE" < ${HOST_DIR_NAME}/config/nginx_lb.template > "$nginx_config"
 
-# Sostituisci le variabili nel file di configurazione di Nginx
-envsubst "$VARIABLES_TO_REPLACE" < ${HOST_DIR_NAME}/config/nginx_lb.template > ${HOST_DIR_NAME}/config/nginx_lb.conf
+# Aggiungi tutte le istanze di k8s-node{n} al file di configurazione
+for node in $node_instances; do
+  sed -i "/upstream k8s-cluster-go {/a\    server ${node}.loc:31001;" "$nginx_config"
+  sed -i "/upstream k8s-cluster-php {/a\    server ${node}.loc:31002;" "$nginx_config"
+done
 
 # Mount a directory from the host into the VM
 multipass mount ${HOST_DIR_NAME}/config nginx-cluster-balancer:/mnt/host-config
@@ -74,7 +83,8 @@ EOF
 # Unmount the directory from the VM
 multipass umount nginx-cluster-balancer:/mnt/host-config
 
-rm -rf ${HOST_DIR_NAME}/config/nginx_lb.conf
+# Rimuovi il file di configurazione temporaneo
+rm -rf "$nginx_config"
 
 # List the VMs
 multipass list
@@ -106,7 +116,6 @@ while true; do
             ;;
     esac
 done
-
 
 # Check if the line already exists and update or add it
 if grep -q "nginx-cluster-balancer demo-go.loc demo-php.loc" /etc/hosts; then

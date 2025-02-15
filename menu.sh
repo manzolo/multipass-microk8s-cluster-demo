@@ -18,9 +18,9 @@ select_command() {
         "Stop Nginx Load Balancer" "Stop Nginx load balancer" \
         "Rancher Management:" "" \
         "Create Rancher" "Create Rancher" \
-        "Destroy Rancher" "Destroy Rancher" \
         "Start Rancher" "Start Rancher" \
         "Stop Rancher" "Stop Rancher" \
+        "Destroy Rancher" "Destroy Rancher" \
         "Uninstall All" "Destroy Kubernetes cluster, Nginx LB, and Rancher" \
         "Exit" "Exit the program" 3>&1 1>&2 2>&3)
 
@@ -52,14 +52,14 @@ select_command() {
                 "Create Nginx Load Balancer")
                     ./cmd/create_nginx_lb.sh && echo "Nginx LB creation done." || echo "Error during Nginx LB creation."
                     ;;
-                "Destroy Nginx Load Balancer")
-                    ./cmd/destroy_nginx_lb.sh && echo "Nginx LB destruction done." || echo "Error during Nginx LB destruction."
-                    ;;
                 "Start Nginx Load Balancer")
                     multipass start nginx-cluster-balancer && echo "Nginx LB startup done." || echo "Error starting Nginx LB."
                     ;;
                 "Stop Nginx Load Balancer")
                     multipass stop nginx-cluster-balancer && echo "Nginx LB shutdown done." || echo "Error stopping Nginx LB."
+                    ;;
+                "Destroy Nginx Load Balancer")
+                    ./cmd/destroy_nginx_lb.sh && echo "Nginx LB destruction done." || echo "Error during Nginx LB destruction."
                     ;;
                 "Create Rancher")
                     ./cmd/create_rancher.sh && echo "Rancher creation done." || echo "Error during Rancher creation."

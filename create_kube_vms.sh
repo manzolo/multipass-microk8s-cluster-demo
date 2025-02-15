@@ -3,11 +3,6 @@ set -e
 
 HOST_DIR_NAME=${PWD}
 
-# Load .env file if it exists
-if [[ -f .env ]]; then
-  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
-fi
-
 # Default values (fallback if not in .env) - These are now overridden by .env
 DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}" # Use .env var if set, else default
 DEFAULT_INSTANCES="${INSTANCES:-2}"
@@ -46,45 +41,6 @@ trap "rm -f $temp_file" EXIT
 msg_warn "Checking prerequisites..."
 check_command_exists "multipass"
 
-# Function to create a VM
-create_vm() {
-    local vm_name=$1
-    local ram=$2
-    local hdd=$3
-    local cpu=$4
-
-    msg_warn "Creating VM: $vm_name"
-    if ! multipass launch $DEFAULT_UBUNTU_VERSION -m $ram -d $hdd -c $cpu -n $vm_name; then
-        msg_error "Failed to create VM: $vm_name"
-        exit 1
-    fi
-    multipass info $vm_name
-}
-
-# Function to clone a VM
-clone_vm() {
-    local vm_src=$VM_MAIN_NAME
-    local vm_dst=$1
-
-    msg_warn "Clone VM: $vm_src"
-    if ! multipass clone $vm_src -n $vm_dst; then
-        msg_error "Failed to clone VM: $vm_src"
-        exit 1
-    fi
-    multipass info $vm_dst
-}
-
-# Function to mount host directory
-mount_host_dir() {
-    local vm_name=$1
-
-    msg_warn "Mounting host directory to $vm_name"
-    if ! multipass mount ${HOST_DIR_NAME} $vm_name; then
-        msg_error "Failed to mount directory to $vm_name"
-        exit 1
-    fi
-}
-
 # Create main VM
 create_vm $VM_MAIN_NAME "$mainRam" "$mainHddGb" "$mainCpu"
 mount_host_dir $VM_MAIN_NAME
@@ -99,6 +55,7 @@ multipass stop $VM_MAIN_NAME
 for ((counter=1; counter<=instances; counter++)); do
     clone_vm "${VM_NODE_PREFIX}$counter"
     multipass start "${VM_NODE_PREFIX}$counter"
+    multipass info "${VM_NODE_PREFIX}$counter"
 done
 
 multipass start $VM_MAIN_NAME
@@ -106,12 +63,6 @@ multipass start $VM_MAIN_NAME
 # Create hosts file
 msg_warn "Generating /etc/hosts entries..."
 multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var".loc"}' > config/hosts
-
-# Mount host directory
-#msg_info "=== Task 1: Mount host drive with installation scripts ==="
-#for ((counter=1; counter<=instances; counter++)); do
-#    mount_host_dir "${VM_NODE_PREFIX}$counter"
-#done
 
 # Join nodes to cluster
 msg_info "=== Task 2: Installing Kubernetes on worker nodes ==="

@@ -1,34 +1,5 @@
 #!/bin/bash
 
-# Load .env file if it exists
-if [[ -f .env ]]; then
-  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
-fi
-
-# Function to clone a VM
-clone_vm() {
-    local vm_src=$VM_MAIN_NAME
-    local vm_dst=$1
-
-    msg_warn "Clone VM: $vm_src"
-    if ! multipass clone $vm_src -n $vm_dst; then
-        msg_error "Failed to clone VM: $vm_src"
-        exit 1
-    fi
-    multipass info $vm_dst
-}
-
-# Function to mount host directory
-mount_host_dir() {
-    local vm_name=$1
-
-    msg_warn "Mounting host directory to $vm_name"
-    if ! multipass mount ${HOST_DIR_NAME} $vm_name; then
-        msg_error "Failed to mount directory to $vm_name"
-        exit 1
-    fi
-}
-
 # Include le funzioni
 source $(dirname $0)/../script/__functions.sh
 
@@ -58,7 +29,7 @@ multipass stop $VM_MAIN_NAME
 # Create node VMs
 clone_vm "${VM_NODE_PREFIX}$counter"
 multipass start "${VM_NODE_PREFIX}$counter"
-
+multipass info "${VM_NODE_PREFIX}$counter"
 multipass start $VM_MAIN_NAME
 
 # Wait for cluster to be ready

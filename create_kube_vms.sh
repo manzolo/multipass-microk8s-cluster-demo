@@ -3,14 +3,31 @@ set -e
 
 HOST_DIR_NAME=${PWD}
 
-#------------------- Env vars ---------------------------------------------
-instances="${1:-2}"           # Number of nodes
-mainCpu=${2:-2}               # CPU for main VM
-mainRam=${3:-2Gb}             # RAM for main VM
-mainHddGb=${4:-10Gb}          # HDD for main VM
-nodeCpu=${5:-1}               # CPU for node VM
-nodeRam=${6:-2Gb}             # RAM for node VM
-nodeHddGb=${7:-10Gb}          # HDD for node VM
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
+# Default values (fallback if not in .env) - These are now overridden by .env
+DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}" # Use .env var if set, else default
+DEFAULT_INSTANCES="${INSTANCES:-2}"
+DEFAULT_MAIN_CPU="${MAIN_CPU:-2}"
+DEFAULT_MAIN_RAM="${MAIN_RAM:-2Gb}"
+DEFAULT_MAIN_HDD_GB="${MAIN_HDD_GB:-10Gb}"
+DEFAULT_NODE_CPU="${NODE_CPU:-1}"
+DEFAULT_NODE_RAM="${NODE_RAM:-2Gb}"
+DEFAULT_NODE_HDD_GB="${NODE_HDD_GB:-10Gb}"
+
+# ... (rest of your script)
+
+#------------------- Env vars (now using defaults overridden by .env)---------------------------------------------
+instances="${1:-$DEFAULT_INSTANCES}"           # Number of nodes
+mainCpu="${2:-$DEFAULT_MAIN_CPU}"               # CPU for main VM
+mainRam="${3:-$DEFAULT_MAIN_RAM}"             # RAM for main VM
+mainHddGb="${4:-$DEFAULT_MAIN_HDD_GB}"          # HDD for main VM
+nodeCpu="${5:-$DEFAULT_NODE_CPU}"               # CPU for node VM
+nodeRam="${6:-$DEFAULT_NODE_RAM}"             # RAM for node VM
+nodeHddGb="${7:-$DEFAULT_NODE_HDD_GB}"          # HDD for node VM
 #--------------------------------------------------------------------------
 
 # Include functions
@@ -37,7 +54,7 @@ create_vm() {
     local cpu=$4
 
     msg_warn "Creating VM: $vm_name"
-    if ! multipass launch -m $ram -d $hdd -c $cpu -n $vm_name; then
+    if ! multipass launch $DEFAULT_UBUNTU_VERSION -m $ram -d $hdd -c $cpu -n $vm_name; then
         msg_error "Failed to create VM: $vm_name"
         exit 1
     fi

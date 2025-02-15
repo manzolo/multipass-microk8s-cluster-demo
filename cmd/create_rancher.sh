@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
 HOST_DIR_NAME=${PWD}
 
 # Include functions (assuming this is defined elsewhere)
@@ -37,7 +42,7 @@ create_and_configure_vm() {
     msg_warn "Creating and configuring VM: $vm_name"
 
     # Create the VM
-    if ! multipass launch -m $ram -d $hdd -c $cpu -n $vm_name; then
+    if ! multipass launch "22.04" -m $ram -d $hdd -c $cpu -n $vm_name; then
         msg_error "Failed to create VM: $vm_name"
         exit 1
     fi
@@ -92,7 +97,7 @@ docker run -d \
   -p 443:443 \
   --privileged \
   --name rancher \
-  rancher/rancher:v2.9.2
+  rancher/rancher:v2.10.2
 
 # Check if Rancher container started successfully
 if ! docker ps | grep rancher; then

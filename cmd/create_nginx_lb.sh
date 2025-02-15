@@ -1,7 +1,15 @@
 #!/bin/bash
 set -e
 
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
 HOST_DIR_NAME=${PWD}
+
+# Default values (fallback if not in .env) - These are now overridden by .env
+DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}" # Use .env var if set, else default
 
 # Include functions
 source $(dirname $0)/../script/__functions.sh
@@ -26,7 +34,7 @@ if [ -n "$missing_ips" ]; then
 fi
 
 # Launch a new VM with the specified requirements
-multipass launch -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
+multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
 
 # Mount a directory from the host into the VM
 multipass mount ${HOST_DIR_NAME}/config nginx-cluster-balancer:/mnt/host-config

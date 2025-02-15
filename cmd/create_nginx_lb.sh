@@ -36,11 +36,15 @@ fi
 # Launch a new VM with the specified requirements
 multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
 
+envsubst < ${HOST_DIR_NAME}/config/nginx_lb.template > ${HOST_DIR_NAME}/config/nginx_lb.conf
+
 # Mount a directory from the host into the VM
 multipass mount ${HOST_DIR_NAME}/config nginx-cluster-balancer:/mnt/host-config
 
 # Access the newly created VM
 multipass shell nginx-cluster-balancer <<EOF
+
+sudo tee -a /etc/hosts <<<"$K8S_HOSTS"
 
 # Update the repositories
 sudo apt update
@@ -54,8 +58,6 @@ sudo cp /mnt/host-config/nginx_lb.conf /etc/nginx/sites-available/cluster-balanc
 # Create a symbolic link to enable the site
 sudo ln -s /etc/nginx/sites-available/cluster-balancer /etc/nginx/sites-enabled/
 
-echo "$K8S_HOSTS" | sudo tee -a /etc/hosts
-
 # Verify the correctness of the Nginx configuration
 sudo nginx -t
 
@@ -68,6 +70,8 @@ EOF
 
 # Unmount the directory from the VM
 multipass umount nginx-cluster-balancer:/mnt/host-config
+
+rm -rf ${HOST_DIR_NAME}/config/nginx_lb.conf
 
 # List the VMs
 multipass list

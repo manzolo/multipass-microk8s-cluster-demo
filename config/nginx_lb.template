@@ -1,5 +1,5 @@
 upstream k8s-cluster-go {
-    server k8s-main.loc:31001;
+    server ${VM_MAIN_NAME}.loc:31001;
     server k8s-node1.loc:31001;
     server k8s-node2.loc:31001;
 }
@@ -18,7 +18,7 @@ server {
 }
 
 upstream k8s-cluster-php {
-    server k8s-main.loc:31002;
+    server ${VM_MAIN_NAME}.loc:31002;
     server k8s-node1.loc:31002;
     server k8s-node2.loc:31002;
 }

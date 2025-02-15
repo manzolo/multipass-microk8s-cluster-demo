@@ -1,3 +1,4 @@
 script/_join_node.sh
 script/_test.sh
 config/hosts
+config/nginx_lb.conf

@@ -87,6 +87,12 @@ mount_host_dir() {
 
 # Create main VM
 create_vm $VM_MAIN_NAME "$mainRam" "$mainHddGb" "$mainCpu"
+mount_host_dir $VM_MAIN_NAME
+
+# Install microk8s
+msg_info "=== Task 1: Installing microk8s on ${VM_MAIN_NAME} ==="
+run_command_on_node $VM_MAIN_NAME "script/_install_microk8s.sh"
+
 multipass stop $VM_MAIN_NAME
 
 # Create node VMs
@@ -102,18 +108,13 @@ msg_warn "Generating /etc/hosts entries..."
 multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var".loc"}' > config/hosts
 
 # Mount host directory
-msg_info "=== Task 1: Mount host drive with installation scripts ==="
-mount_host_dir $VM_MAIN_NAME
-for ((counter=1; counter<=instances; counter++)); do
-    mount_host_dir "k8s-node$counter"
-done
-
-# Install microk8s
-msg_info "=== Task 2: Installing microk8s on ${VM_MAIN_NAME} ==="
-run_command_on_node $VM_MAIN_NAME "script/_install_microk8s.sh"
+#msg_info "=== Task 1: Mount host drive with installation scripts ==="
+#for ((counter=1; counter<=instances; counter++)); do
+#    mount_host_dir "k8s-node$counter"
+#done
 
 # Join nodes to cluster
-msg_info "=== Task 3: Installing Kubernetes on worker nodes ==="
+msg_info "=== Task 2: Installing Kubernetes on worker nodes ==="
 for ((counter=1; counter<=instances; counter++)); do
     rm -rf script/_join_node.sh
     msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
@@ -130,7 +131,7 @@ while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready; do
 done
 
 # Complete microk8s setup
-msg_info "=== Task 4: Completing microk8s setup ==="
+msg_info "=== Task 3: Completing microk8s setup ==="
 run_command_on_node $VM_MAIN_NAME "script/_complete_microk8s.sh"
 
 # Unmount directories

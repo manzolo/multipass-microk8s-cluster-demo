@@ -5,19 +5,35 @@ if [[ -f .env ]]; then
   export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
 fi
 
+# Function to clone a VM
+clone_vm() {
+    local vm_src=$VM_MAIN_NAME
+    local vm_dst=$1
+
+    msg_warn "Clone VM: $vm_src"
+    if ! multipass clone $vm_src -n $vm_dst; then
+        msg_error "Failed to clone VM: $vm_src"
+        exit 1
+    fi
+    multipass info $vm_dst
+}
+
+# Function to mount host directory
+mount_host_dir() {
+    local vm_name=$1
+
+    msg_warn "Mounting host directory to $vm_name"
+    if ! multipass mount ${HOST_DIR_NAME} $vm_name; then
+        msg_error "Failed to mount directory to $vm_name"
+        exit 1
+    fi
+}
+
 # Include le funzioni
 source $(dirname $0)/../script/__functions.sh
 
-# Default values (fallback if not in .env) - These are now overridden by .env
-DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}" # Use .env var if set, else default
-
 # Imposta le variabili di ambiente predefinite se non sono state fornite
 HOST_DIR_NAME=${PWD}
-VM_MOUNT_DIR="/home/ubuntu/multipass-microk8s-cluster-demo"  # Percorso montato nella VM
-NODE_TYPE=${1:-worker}
-NODE_CPU=${2:-2}
-NODE_RAM=${3:-2Gb}
-NODE_HDD_GB=${4:-10Gb}
 
 # Controlla i prerequisiti
 msg_warn "Checking prerequisites..."
@@ -36,39 +52,30 @@ else
     ((counter=max_node_num+1))
 fi
 
-msg_info "Launching a new instance: k8s-node$counter"
-multipass launch $DEFAULT_UBUNTU_VERSION -m $NODE_RAM -d $NODE_HDD_GB -c $NODE_CPU -n k8s-node$counter || { msg_error "Failed to launch a new instance. Exiting."; exit 1; }
+mount_host_dir $VM_MAIN_NAME
+multipass stop $VM_MAIN_NAME
 
-# Crea il file degli hosts
-multipass list | grep "k8s-" | grep -E -v "Name|\-\-" | awk '{var=sprintf("%s\t%s",$3,$1); print var}' > ${HOST_DIR_NAME}/config/hosts || { msg_error "Failed to create hosts file. Exiting."; exit 1; }
+# Create node VMs
+clone_vm "k8s-node$counter"
+multipass start "k8s-node$counter"
 
-# Monta il disco host sulla nuova istanza
-msg_info "Mounting host drive with installation scripts"
-multipass mount ${HOST_DIR_NAME} k8s-node$counter:${VM_MOUNT_DIR} || { msg_error "Failed to mount host drive on the new instance. Exiting."; exit 1; }
-multipass mount ${HOST_DIR_NAME} ${VM_MAIN_NAME}:${VM_MOUNT_DIR} || { msg_error "Failed to mount host drive on ${VM_MAIN_NAME}. Exiting."; exit 1; }
+multipass start $VM_MAIN_NAME
 
-# Esegui l'installazione di Kubernetes sul nodo worker
-msg_info "Installing Kubernetes on the worker node"
-rm -rf ${HOST_DIR_NAME}/script/_join_node.sh
+# Wait for cluster to be ready
+msg_warn "Waiting for microk8s to be ready..."
+while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready; do
+    sleep 10
+done
+
+rm -rf script/_join_node.sh
 msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
-if ! run_command_on_node "${VM_MAIN_NAME}" "${VM_MOUNT_DIR}/script/_join_cluster_helper.sh ${VM_MOUNT_DIR} ${NODE_TYPE}"; then
-    msg_error "Failed to generate join cluster command. Exiting."
-    exit 1
-fi
+run_command_on_node $VM_MAIN_NAME "script/_join_cluster_helper.sh"
 
-msg_warn "Installing MicroK8s on k8s-node$counter"
-if ! run_command_on_node "k8s-node$counter" "${VM_MOUNT_DIR}/script/_install_microk8s.sh ${VM_MOUNT_DIR}"; then
-    msg_error "Failed to install MicroK8s on k8s-node$counter. Exiting."
-    exit 1
-fi
+msg_warn "Installing microk8s on k8s-node$counter"
+run_command_on_node "k8s-node$counter" "script/_install_microk8s.sh"
 
 multipass umount ${VM_MAIN_NAME}:$(multipass info ${VM_MAIN_NAME} | grep Mounts | awk '{print $4}')
 multipass umount "k8s-node$counter:$(multipass info "k8s-node$counter" | grep Mounts | awk '{print $4}')"
 
-
 # Visualizza l'indirizzo IP e la porta del servizio
-multipass list
-IP=$(multipass info ${VM_MAIN_NAME} | grep IPv4 | awk '{print $2}')
-NODEPORT=$(multipass exec ${VM_MAIN_NAME} -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
-msg_warn "Try:"
-msg_info "curl -s http://$IP:$NODEPORT"
+multipass list | grep "k8s-"

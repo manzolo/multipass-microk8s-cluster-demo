@@ -6,6 +6,27 @@ HOST_DIR_NAME=${PWD}
 # Include functions (assuming this is defined elsewhere)
 source $(dirname $0)/../script/__functions.sh
 
+update_hosts_vms() {
+    local vm_name=$1
+    local vm_status=$(multipass info "$vm_name" --format csv | tail -1 | cut -d, -f2)
+
+    echo "Inside update_hosts_vms for: $vm_name"  # Debugging: Show which VM
+
+    if [[ "$vm_status" != "Running" ]]; then
+        msg_warn "La VM $vm_name non è attiva. Saltando..."
+        return
+    fi
+    echo "VM $vm_name is running" # Debugging
+
+    msg_info "Update /etc/hosts on $vm_name..."
+
+    # Use the Rancher VM's IP ($VM_IP) for ALL Kubernetes nodes
+    multipass exec "$vm_name" -- sudo bash -c 'grep -q "rancher.loc" /etc/hosts && sed -i.bak -E "/rancher.loc/ s/^[0-9.]+/'"$VM_IP"'/" /etc/hosts || echo "'"$VM_IP"' rancher.loc" >> /etc/hosts'
+
+    msg_info "/etc/hosts contents on $vm_name:"
+    multipass exec "$vm_name" -- cat /etc/hosts
+}
+
 # Function to create a VM and run commands
 create_and_configure_vm() {
     local vm_name=$1
@@ -104,6 +125,11 @@ msg_warn "multipass exec rancher -- docker logs rancher 2>&1 | grep \"Bootstrap 
 
 echo
 
+msg_info "Show rancher logs"
+msg_warn "multipass exec rancher -- docker logs rancher -f"
+
+echo
+
 msg_warn "Waiting rancher start..."
 
 echo
@@ -135,17 +161,70 @@ while true; do
   sleep 5  # Aspetta 5 secondi prima di riprovare
 done
 
-set -e  # Riabilita set -e
+#set -e  # Riabilita set -e
 
-# Ask the user if they want to update /etc/hosts automatically
+# --- Update /etc/hosts ---
+update_hosts_host() {
+    msg_info "Updating /etc/hosts on the host machine..."
+    if grep -q "rancher.loc" /etc/hosts; then
+        if sudo sed -i.bak -E "/rancher.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
+            msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
+        else
+            msg_error "Error updating /etc/hosts on the host machine."
+        fi
+    else
+        if echo "$VM_IP rancher.loc" | sudo tee -a /etc/hosts; then
+            msg_info "Added entry to /etc/hosts on the host machine."
+        else
+            msg_error "Error adding entry to /etc/hosts on the host machine."
+        fi
+    fi
+}
+
+# Update /etc/hosts on the Kubernetes VMs (in parallel)
+multipass list | while read -r line; do
+    if [[ "$line" == *"k8s-"* ]]; then
+        node=$(echo "$line" | awk '{print $1}')
+        node=$(echo "$node" | tr -d '[:space:]')
+
+        echo "Updating /etc/hosts on $node (in background)..."
+
+        # Create a temporary file for the output of this VM
+        output_file=$(mktemp)
+
+        # Run update_hosts_vms in the background, redirecting output
+        update_hosts_vms "$node" > "$output_file" 2>&1 & # Redirect stdout and stderr
+        pids+=($!)
+        output_files+=("$output_file") # Store the output file name
+
+    fi
+done
+
+# Wait for all background processes to finish and display output
+for i in "${!pids[@]}"; do  # Iterate through the indices of the pids array
+    pid=${pids[$i]}
+    wait "$pid"
+    if [[ $? -ne 0 ]]; then
+        msg_error "An error occurred while updating /etc/hosts on one or more VMs."
+        exit 1
+    fi
+
+    # Display the output from the VM in the correct order
+    echo "-------------------- Output for $node --------------------"
+    cat "${output_files[$i]}"
+    rm "${output_files[$i]}" # Clean up the temporary file
+done
+
+
+# Ask the user if they want to update /etc/hosts on the host machine
 while true; do
-    read -r -p "Update /etc/hosts automatically? (y/n): " choice_hosts
+    read -r -p "Update /etc/hosts on the host machine? (y/n): " choice_hosts
     case "$choice_hosts" in
         y|Y)
             break
             ;;
         n|N)
-            echo "Skipping /etc/hosts update."
+            echo "Skipping /etc/hosts update on the host machine."
             break
             ;;
         *)
@@ -154,24 +233,6 @@ while true; do
     esac
 done
 
-# update /etc/hosts on VM k8s-main
-multipass exec k8s-main -- sudo sed -i.bak -E "/rancher.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts
-
 if [[ "$choice_hosts" == "y" || "$choice_hosts" == "Y" ]]; then
-    # Check if the line already exists and update or add it
-    if grep -q "rancher.loc" /etc/hosts; then
-        msg_info "Updating /etc/hosts..."
-        if sudo sed -i.bak -E "/rancher.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
-            msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
-        else
-            msg_error "Error updating /etc/hosts."
-        fi
-    else
-        msg_info "Adding entry to /etc/hosts..."
-        if echo "$VM_IP rancher.loc" | sudo tee -a /etc/hosts; then
-            msg_info "Added entry to /etc/hosts."
-        else
-            msg_error "Error adding entry to /etc/hosts."
-        fi
-    fi
+    update_hosts_host  # Update the host's /etc/hosts
 fi

@@ -36,7 +36,8 @@ fi
 # Launch a new VM with the specified requirements
 multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
 
-envsubst < ${HOST_DIR_NAME}/config/nginx_lb.template > ${HOST_DIR_NAME}/config/nginx_lb.conf
+VARIABLES_TO_REPLACE='$VM_MAIN_NAME'
+envsubst "$VARIABLES_TO_REPLACE" < ${HOST_DIR_NAME}/config/nginx_lb.template > ${HOST_DIR_NAME}/config/nginx_lb.conf
 
 # Mount a directory from the host into the VM
 multipass mount ${HOST_DIR_NAME}/config nginx-cluster-balancer:/mnt/host-config

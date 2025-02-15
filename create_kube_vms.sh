@@ -124,12 +124,39 @@ for ((counter=1; counter<=instances; counter++)); do
 done
 
 # Display cluster info
-multipass list
+multipass list | grep -i "k8s-"
 
 # Test services
 IP=$(multipass info k8s-main | grep IPv4 | awk '{print $2}')
 NODEPORT_GO=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
 NODEPORT_PHP=$(multipass exec k8s-main -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
+
+# MOTD generation with color codes
+MOTD_COMMANDS=$(cat <<EOF
+# Apply new configuration
+$(tput setaf 2)kubectl apply -f config/demo-go.yaml$(tput sgr0)
+# Scale up to 20 demo-go pods
+$(tput setaf 3)kubectl scale deployment demo-go --replicas=20 -n demo-go$(tput sgr0)
+# Scale up to 5 demo-php pods
+$(tput setaf 4)kubectl scale deployment demo-php --replicas=5 -n demo-php$(tput sgr0)
+# Show demo-go pods rollout status
+$(tput setaf 5)kubectl rollout status deployment/demo-go -n demo-go$(tput sgr0)
+# Show demo-php pods rollout status
+$(tput setaf 6)kubectl rollout status deployment/demo-php -n demo-php$(tput sgr0)
+# Show demo-go pods
+$(tput setaf 1)kubectl get all -o wide -n demo-go$(tput sgr0)
+EOF
+)
+
+msg_warn "Add k8s-main MOTD:"
+multipass exec k8s-main -- sudo tee -a /home/ubuntu/.bashrc <<EOF
+echo ""
+echo "Commands to run on k8s-main:"
+echo "$MOTD_COMMANDS"
+EOF
+
+msg_warn "Enter on k8s-main:"
+msg_info "multipass shell k8s-main"
 
 msg_warn "Testing Golang service:"
 msg_info "curl -s http://$IP:$NODEPORT_GO"

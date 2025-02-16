@@ -79,31 +79,30 @@ EOF
         exit 1
     fi
 
-    # --- Start Rancher ---
-    msg_info "Starting Rancher on $vm_name..."
-    if ! multipass shell $vm_name <<EOF
-#!/bin/bash
-set -e
+    # --- Start Rancher with Docker Compose ---
+    msg_info "Starting Rancher on $vm_name using Docker Compose..."
 
-# Start Rancher
-docker run -d \
-  --restart unless-stopped \
-  -p 80:80 \
-  -p 443:443 \
-  --privileged \
-  --name rancher \
-  rancher/rancher:v2.10.2
+    # Create docker-compose.yml file in the VM
+    multipass exec "$vm_name" -- bash -c 'cat > docker-compose.yml <<EOF
+services:
+  rancher:
+    image: rancher/rancher:'"$RANCHER_VERSION"'
+    container_name: rancher
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    privileged: true
+    volumes:
+      - rancher_data:/var/lib/rancher
 
-# Check if Rancher container started successfully
-if ! docker ps | grep rancher; then
-    echo "ERROR: Rancher container failed to start."
-    exit 1
-fi
-exit 0
-EOF
-    then
-        msg_error "Failed to start Rancher on $vm_name. Check the VM's console for details."
-        #multipass exec rancher -- docker logs rancher 2>&1  # Show logs for debugging
+volumes:
+  rancher_data:
+EOF'
+
+    # Run docker-compose
+    if ! multipass exec "$vm_name" -- docker compose up -d; then
+        msg_error "Failed to start Rancher on $vm_name using Docker Compose."
         exit 1
     fi
 
@@ -112,7 +111,7 @@ EOF
 }
 
 # Create and configure the Rancher VM with a single function call
-create_and_configure_vm "rancher" "4Gb" "20Gb" "1"
+create_and_configure_vm "rancher" "4Gb" "20Gb" "2"
 
 # Get the IP address of the VM
 VM_IP=$(multipass info rancher | grep IPv4 | awk '{print $2}')

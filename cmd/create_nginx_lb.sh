@@ -52,6 +52,7 @@ multipass mount ${HOST_DIR_NAME}/config nginx-cluster-balancer:/mnt/host-config
 multipass shell nginx-cluster-balancer <<EOF
 
 sudo tee -a /etc/hosts <<<"$K8S_HOSTS"
+sudo tee -a /etc/cloud/templates/hosts.debian.tmpl <<<"$K8S_HOSTS"
 
 # Update the repositories
 sudo apt update

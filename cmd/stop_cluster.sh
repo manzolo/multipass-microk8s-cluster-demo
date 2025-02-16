@@ -4,6 +4,7 @@ HOST_DIR_NAME=${PWD}
 
 #Include functions
 source $(dirname $0)/../script/__functions.sh
+
 # Load default values and environment variables
 source $(dirname $0)/../script/__load_env.sh
 

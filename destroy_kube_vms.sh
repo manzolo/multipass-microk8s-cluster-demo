@@ -16,7 +16,13 @@ done
 echo "remove ${VM_MAIN_NAME}"
 multipass delete --purge ${VM_MAIN_NAME}
 multipass purge
+
+multipass delete --purge ${DNS_VM_NAME}
+multipass purge
+
 multipass list
+
+
 
 rm -rf "./script/_test.sh"
 rm -rf "./config/hosts"

@@ -3,6 +3,9 @@
 # Include le funzioni
 source $(dirname $0)/../script/__functions.sh
 
+# Load default values and environment variables
+source $(dirname $0)/../script/__load_env.sh
+
 # Imposta le variabili di ambiente predefinite se non sono state fornite
 HOST_DIR_NAME=${PWD}
 
@@ -29,6 +32,14 @@ multipass stop $VM_MAIN_NAME
 # Create node VMs
 clone_vm "${VM_NODE_PREFIX}$counter"
 multipass start "${VM_NODE_PREFIX}$counter"
+
+add_machine_to_dns "${VM_NODE_PREFIX}$counter"
+
+DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+multipass exec "${VM_NODE_PREFIX}$counter" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
+nameserver '"$DNS_IP"'
+EOF'
+
 multipass info "${VM_NODE_PREFIX}$counter"
 multipass start $VM_MAIN_NAME
 

@@ -3,10 +3,15 @@
 #Include functions
 source $(dirname $0)/../script/__functions.sh
 
-multipass stop --force nginx-cluster-balancer
-multipass delete --purge nginx-cluster-balancer
+# Load default values and environment variables
+source $(dirname $0)/../script/__load_env.sh
+
+multipass stop --force $LOAD_BALANCE_HOSTNAME
+multipass delete --purge $LOAD_BALANCE_HOSTNAME
 multipass purge
 
-msg_warn "Remove nginx-cluster-balancer from /etc/hosts"
+remove_machine_from_dns $LOAD_BALANCE_HOSTNAME
 
-sudo sed -i -E "/nginx-cluster-balancer/d" /etc/hosts
+msg_warn "Remove $LOAD_BALANCE_HOSTNAME from /etc/hosts"
+
+sudo sed -i -E "/$LOAD_BALANCE_HOSTNAME/d" /etc/hosts

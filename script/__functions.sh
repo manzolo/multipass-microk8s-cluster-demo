@@ -79,3 +79,46 @@ mount_host_dir() {
     fi
 }
 
+# Funzione per aggiungere una macchina al DNS
+add_machine_to_dns() {
+    local machine_name=$1
+    
+    DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+
+    # Ottieni l'IP della macchina
+    local machine_ip=$(multipass info "$machine_name" | grep IPv4 | awk '{print $2}')
+
+    if [ -z "$machine_ip" ]; then
+        msg_error "Unable to obtain $machine_name IP"
+        return 1
+    fi
+    
+    multipass exec "$machine_name" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
+nameserver '"$DNS_IP"'
+EOF'
+
+    # Aggiungi la voce DNS al file di configurazione di dnsmasq
+    msg_info "Add $machine_name.$DNS_SUFFIX -> $machine_ip to DNS on $DNS_VM_NAME"
+    multipass exec "$DNS_VM_NAME" -- sudo bash -c "echo 'address=/$machine_name.$DNS_SUFFIX/$machine_ip' >> /etc/dnsmasq.d/local.conf"
+
+    # Riavvia dnsmasq per applicare le modifiche
+    msg_info "Restart dnsmasq on $DNS_VM_NAME"
+    multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
+
+    msg_info "$machine_name.$DNS_SUFFIX added succesfully to DNS on $DNS_VM_NAME!"
+}
+
+remove_machine_from_dns() {
+    local machine_name=$1
+
+    msg_info "Rimuovendo $machine_name.$DNS_SUFFIX dal DNS su $DNS_VM_NAME"
+
+    # Rimuovi la voce DNS dal file di configurazione di dnsmasq
+    multipass exec "$DNS_VM_NAME" -- sudo sed -i "/address=\/$machine_name.$DNS_SUFFIX\//d" /etc/dnsmasq.d/local.conf
+
+    # Riavvia dnsmasq per applicare le modifiche
+    msg_info "Riavvio di dnsmasq su $DNS_VM_NAME"
+    multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
+
+    msg_info "$machine_name.$DNS_SUFFIX removed from $DNS_VM_NAME!"
+}

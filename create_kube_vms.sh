@@ -20,6 +20,9 @@ echo "Script started at: $start_time"
 msg_warn "Checking prerequisites..."
 check_command_exists "multipass"
 
+# Create and configure Dns Server
+source $(dirname $0)/script/__create_dns_server.sh
+
 # Create and configure VMs
 source $(dirname $0)/script/__create_main_vm.sh
 

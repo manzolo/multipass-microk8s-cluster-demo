@@ -61,3 +61,6 @@ multipass umount "${VM_NODE_PREFIX}$counter:$(multipass info "${VM_NODE_PREFIX}$
 
 # Visualizza l'indirizzo IP e la porta del servizio
 multipass list | grep "k8s-"
+
+read -n 1 -s -r -p "Press any key to continue..."
+echo

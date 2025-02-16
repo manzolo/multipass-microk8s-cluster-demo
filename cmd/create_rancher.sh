@@ -9,26 +9,26 @@ source $(dirname $0)/../script/__functions.sh
 # Load default values and environment variables
 source $(dirname $0)/../script/__load_env.sh
 
-update_hosts_vms() {
-    local vm_name=$1
-    local vm_status=$(multipass info "$vm_name" --format csv | tail -1 | cut -d, -f2)
+# update_hosts_vms() {
+#     local vm_name=$1
+#     local vm_status=$(multipass info "$vm_name" --format csv | tail -1 | cut -d, -f2)
 
-    echo "Inside update_hosts_vms for: $vm_name"  # Debugging: Show which VM
+#     echo "Inside update_hosts_vms for: $vm_name"  # Debugging: Show which VM
 
-    if [[ "$vm_status" != "Running" ]]; then
-        msg_warn "La VM $vm_name non è attiva. Saltando..."
-        return
-    fi
-    echo "VM $vm_name is running" # Debugging
+#     if [[ "$vm_status" != "Running" ]]; then
+#         msg_warn "La VM $vm_name non è attiva. Saltando..."
+#         return
+#     fi
+#     echo "VM $vm_name is running" # Debugging
 
-    msg_info "Update /etc/hosts on $vm_name..."
+#     msg_info "Update /etc/hosts on $vm_name..."
 
-    # Use the Rancher VM's IP ($VM_IP) for ALL Kubernetes nodes
-    multipass exec $vm_name -- sudo bash -c 'grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts && sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/'"$VM_IP"'/" /etc/hosts || echo "'"$VM_IP"' ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" >> /etc/hosts'
+#     # Use the Rancher VM's IP ($VM_IP) for ALL Kubernetes nodes
+#     multipass exec $vm_name -- sudo bash -c 'grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts && sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/'"$VM_IP"'/" /etc/hosts || echo "'"$VM_IP"' ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" >> /etc/hosts'
 
-    msg_info "/etc/hosts contents on $vm_name:"
-    multipass exec "$vm_name" -- cat /etc/hosts
-}
+#     msg_info "/etc/hosts contents on $vm_name:"
+#     multipass exec "$vm_name" -- cat /etc/hosts
+# }
 
 # Function to create a VM and run commands
 create_and_configure_vm() {
@@ -170,25 +170,28 @@ while true; do
   sleep 5  # Aspetta 5 secondi prima di riprovare
 done
 
+read -n 1 -s -r -p "Press any key to continue..."
+echo
+
 #set -e  # Riabilita set -e
 
-# --- Update /etc/hosts ---
-update_hosts_host() {
-    msg_info "Updating /etc/hosts on the host machine..."
-    if grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts; then
-        if sudo sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
-            msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
-        else
-            msg_error "Error updating /etc/hosts on the host machine."
-        fi
-    else
-        if echo "$VM_IP ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" | sudo tee -a /etc/hosts; then
-            msg_info "Added entry to /etc/hosts on the host machine."
-        else
-            msg_error "Error adding entry to /etc/hosts on the host machine."
-        fi
-    fi
-}
+# # --- Update /etc/hosts ---
+# update_hosts_host() {
+#     msg_info "Updating /etc/hosts on the host machine..."
+#     if grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts; then
+#         if sudo sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
+#             msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
+#         else
+#             msg_error "Error updating /etc/hosts on the host machine."
+#         fi
+#     else
+#         if echo "$VM_IP ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" | sudo tee -a /etc/hosts; then
+#             msg_info "Added entry to /etc/hosts on the host machine."
+#         else
+#             msg_error "Error adding entry to /etc/hosts on the host machine."
+#         fi
+#     fi
+# }
 
 ## Update /etc/hosts on the Kubernetes VMs (in parallel)
 #multipass list | while read -r line; do
@@ -225,23 +228,23 @@ update_hosts_host() {
 #done
 
 
-# Ask the user if they want to update /etc/hosts on the host machine
-while true; do
-    read -r -p "Update /etc/hosts on the host machine? (y/n): " choice_hosts
-    case "$choice_hosts" in
-        y|Y)
-            break
-            ;;
-        n|N)
-            echo "Skipping /etc/hosts update on the host machine."
-            break
-            ;;
-        *)
-            echo "Invalid input. Please enter 'y' or 'n'."
-            ;;
-    esac
-done
+# # Ask the user if they want to update /etc/hosts on the host machine
+# while true; do
+#     read -r -p "Update /etc/hosts on the host machine? (y/n): " choice_hosts
+#     case "$choice_hosts" in
+#         y|Y)
+#             break
+#             ;;
+#         n|N)
+#             echo "Skipping /etc/hosts update on the host machine."
+#             break
+#             ;;
+#         *)
+#             echo "Invalid input. Please enter 'y' or 'n'."
+#             ;;
+#     esac
+# done
 
-if [[ "$choice_hosts" == "y" || "$choice_hosts" == "Y" ]]; then
-    update_hosts_host  # Update the host's /etc/hosts
-fi
+# if [[ "$choice_hosts" == "y" || "$choice_hosts" == "Y" ]]; then
+#     update_hosts_host  # Update the host's /etc/hosts
+# fi

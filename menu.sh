@@ -11,6 +11,8 @@ select_command() {
         "Add Cluster Node" "Add a node to the Kubernetes cluster" \
         "Remove Cluster Node" "Remove a node from the Kubernetes cluster" \
         "Destroy Cluster" "Destroy the Kubernetes cluster" \
+        "Add DNS Configuration" "Add a custom local cluster DNS configuration" \
+        "Remove DNS Configuration" "Remove the custom local DNS configuration" \
         "Load Balancer Management:" "" \
         "Create Nginx Load Balancer" "Create Nginx load balancer" \
         "Destroy Nginx Load Balancer" "Destroy Nginx load balancer" \
@@ -48,6 +50,14 @@ select_command() {
                     else
                         echo "Node removal cancelled." # More descriptive message
                     fi
+                    ;;
+                "Add DNS Configuration")
+                    echo "Adding DNS configuration..."
+                    ./cmd/add_dns_to_host.sh
+                    ;;
+                "Remove DNS Configuration")
+                    echo "Removing DNS configuration..."
+                    ./cmd/remove_dns_from_host.sh
                     ;;
                 "Create Nginx Load Balancer")
                     ./cmd/create_nginx_lb.sh && echo "Nginx LB creation done." || echo "Error during Nginx LB creation."

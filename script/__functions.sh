@@ -82,20 +82,33 @@ mount_host_dir() {
 # Funzione per aggiungere una macchina al DNS
 add_machine_to_dns() {
     local machine_name=$1
-    
+    local machine_ip=$2  # Secondo parametro opzionale: IP della macchina
+
     DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
 
-    # Ottieni l'IP della macchina
-    local machine_ip=$(multipass info "$machine_name" | grep IPv4 | awk '{print $2}')
-
+    # Se l'IP non è fornito, prova a ottenerlo automaticamente (solo se è una VM Multipass)
     if [ -z "$machine_ip" ]; then
-        msg_error "Unable to obtain $machine_name IP"
-        return 1
+        if multipass list | grep -q "$machine_name"; then
+            machine_ip=$(multipass info "$machine_name" | grep IPv4 | awk '{print $2}')
+            if [ -z "$machine_ip" ]; then
+                msg_error "Unable to obtain $machine_name IP"
+                return 1
+            fi
+        else
+            msg_error "No IP provided and $machine_name is not a Multipass VM. Please provide an IP."
+            return 1
+        fi
     fi
-    
-    multipass exec "$machine_name" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
+
+    # Configura il resolver DNS sulla macchina (solo se è una VM Multipass)
+    if multipass list | grep -q "$machine_name"; then
+        msg_info "Configuring DNS resolver on $machine_name to use $DNS_VM_NAME ($DNS_IP)"
+        multipass exec "$machine_name" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
 nameserver '"$DNS_IP"'
 EOF'
+    else
+        msg_warn "$machine_name is not a Multipass VM. Skipping DNS resolver configuration."
+    fi
 
     # Aggiungi la voce DNS al file di configurazione di dnsmasq
     msg_info "Add $machine_name.$DNS_SUFFIX -> $machine_ip to DNS on $DNS_VM_NAME"
@@ -105,7 +118,7 @@ EOF'
     msg_info "Restart dnsmasq on $DNS_VM_NAME"
     multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
 
-    msg_info "$machine_name.$DNS_SUFFIX added succesfully to DNS on $DNS_VM_NAME!"
+    msg_info "$machine_name.$DNS_SUFFIX added successfully to DNS on $DNS_VM_NAME!"
 }
 
 remove_machine_from_dns() {

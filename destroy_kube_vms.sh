@@ -22,9 +22,10 @@ multipass purge
 
 multipass list
 
-
-
 rm -rf "./script/_test.sh"
 rm -rf "./config/hosts"
 
 msg_info "== Vms cluster clear"
+
+read -n 1 -s -r -p "Press any key to continue..."
+echo

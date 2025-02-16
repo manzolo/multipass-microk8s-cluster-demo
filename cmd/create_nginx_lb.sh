@@ -28,7 +28,7 @@ node_instances=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}')
 nginx_config="${HOST_DIR_NAME}/config/nginx_lb.conf"
 
 # Sostituisci le variabili d'ambiente nel template
-VARIABLES_TO_REPLACE='$VM_MAIN_NAME $VM_NODE_PREFIX'
+VARIABLES_TO_REPLACE='$VM_MAIN_NAME $VM_NODE_PREFIX $DNS_SUFFIX'
 envsubst "$VARIABLES_TO_REPLACE" < ${HOST_DIR_NAME}/config/nginx_lb.template > "$nginx_config"
 
 # Aggiungi tutte le istanze di k8s-node{n} al file di configurazione
@@ -74,49 +74,57 @@ rm -rf "$nginx_config"
 # List the VMs
 multipass list
 
-# Get the IP address of the VM
 VM_IP=$(multipass info $LOAD_BALANCE_HOSTNAME | grep IPv4 | awk '{print $2}')
 
-echo
-echo
+add_machine_to_dns "demo-go" $VM_IP
+add_machine_to_dns "demo-php" $VM_IP
 
-# Print instructions to add to the host's /etc/hosts file
-msg_warn "Add the following line to the /etc/hosts file of the host:"
-msg_warn "$VM_IP $LOAD_BALANCE_HOSTNAME demo-go.loc demo-php.loc"
+read -n 1 -s -r -p "Press any key to continue..."
 echo
 
-# Ask the user if they want to execute the command
-while true; do
-    read -r -p "Do you want to execute this command now? (y/n): " choice
-    case "$choice" in
-        y|Y)
-            break  # Exit the loop if the user says yes
-            ;;
-        n|N)
-            echo "Skipping /etc/hosts update."
-            exit 0 # Return 0 to indicate that the operation was skipped, not an error.
-            ;;
-        *)
-            echo "Invalid input. Please enter 'y' or 'n'."
-            ;;
-    esac
-done
+# # Get the IP address of the VM
+# VM_IP=$(multipass info $LOAD_BALANCE_HOSTNAME | grep IPv4 | awk '{print $2}')
 
-# Check if the line already exists and update or add it
-if grep -q "$LOAD_BALANCE_HOSTNAME demo-go.loc demo-php.loc" /etc/hosts; then
-    msg_info "Updating /etc/hosts..."
-    if sudo sed -i.bak -E "/$LOAD_BALANCE_HOSTNAME demo-go.loc demo-php.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
-        msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
-    else
-        msg_error "Error updating /etc/hosts."
-        exit 1 # 1 to indicate an error
-    fi
-else
-    msg_info "Adding entry to /etc/hosts..."
-    if echo "$VM_IP $LOAD_BALANCE_HOSTNAME demo-go.loc demo-php.loc" | sudo tee -a /etc/hosts; then
-        msg_info "Added entry to /etc/hosts."
-    else
-        msg_error "Error adding entry to /etc/hosts."
-        exit 1 # 1 to indicate an error
-    fi
-fi
+# echo
+# echo
+
+# # Print instructions to add to the host's /etc/hosts file
+# msg_warn "Add the following line to the /etc/hosts file of the host:"
+# msg_warn "$VM_IP $LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}"
+# echo
+
+# # Ask the user if they want to execute the command
+# while true; do
+#     read -r -p "Do you want to execute this command now? (y/n): " choice
+#     case "$choice" in
+#         y|Y)
+#             break  # Exit the loop if the user says yes
+#             ;;
+#         n|N)
+#             echo "Skipping /etc/hosts update."
+#             exit 0 # Return 0 to indicate that the operation was skipped, not an error.
+#             ;;
+#         *)
+#             echo "Invalid input. Please enter 'y' or 'n'."
+#             ;;
+#     esac
+# done
+
+# # Check if the line already exists and update or add it
+# if grep -q "$LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}" /etc/hosts; then
+#     msg_info "Updating /etc/hosts..."
+#     if sudo sed -i.bak -E "/$LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
+#         msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
+#     else
+#         msg_error "Error updating /etc/hosts."
+#         exit 1 # 1 to indicate an error
+#     fi
+# else
+#     msg_info "Adding entry to /etc/hosts..."
+#     if echo "$VM_IP $LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}" | sudo tee -a /etc/hosts; then
+#         msg_info "Added entry to /etc/hosts."
+#     else
+#         msg_error "Error adding entry to /etc/hosts."
+#         exit 1 # 1 to indicate an error
+#     fi
+# fi

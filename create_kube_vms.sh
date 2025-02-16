@@ -126,6 +126,9 @@ $(tput setaf 7)kubectl get all -o wide -n demo-php$(tput sgr0)
 $(tput setaf 8)$(tput bold)👀 Show demo-go pods:$(tput sgr0)
 $(tput setaf 8)kubectl get all -o wide -n demo-go$(tput sgr0)
 
+$(tput setaf 1)$(tput bold)🔑 Get MicroK8s Dashboard Token:$(tput sgr0)
+$(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token$(tput sgr0)
+
 $(tput setaf 9)$(tput bold)🖥️ Show node details:$(tput sgr0)
 $(tput setaf 9)kubectl get node$(tput sgr0)
 

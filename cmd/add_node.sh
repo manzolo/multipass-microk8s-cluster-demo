@@ -38,7 +38,7 @@ while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready; do
     sleep 10
 done
 
-rm -rf script/_join_node.sh
+rm -rf ./_join_node.sh
 msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
 run_command_on_node $VM_MAIN_NAME "script/_join_cluster_helper.sh"
 

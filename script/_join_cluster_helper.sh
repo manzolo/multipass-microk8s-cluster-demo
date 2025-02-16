@@ -17,7 +17,7 @@ if [[ "$NODE_TYPE" != "worker" && "$NODE_TYPE" != "controlplane" ]]; then
 fi
 
 # Remove any previous scripts
-rm -rf _join_node.sh
+rm -rf script/_join_node.sh
 
 # Get the join command and replace the IP address and port with the cluster name
 #JOINCMD=$(sudo microk8s add-node | sed '/microk8s/p' | sed '3!d' | sed -r 's|microk8s join (\b[0-9]{1,3}\.){3}[0-9]{1,3}\b:|microk8s join ${VM_MAIN_NAME}.loc:|')

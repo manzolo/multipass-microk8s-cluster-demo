@@ -20,6 +20,9 @@ echo "Script started at: $start_time"
 msg_warn "Checking prerequisites..."
 check_command_exists "multipass"
 
+# Create and configure Dns Server
+source $(dirname $0)/script/__create_dns_server.sh
+
 # Create and configure VMs
 source $(dirname $0)/script/__create_main_vm.sh
 
@@ -44,3 +47,6 @@ source $(dirname $0)/script/__display_cluster_info.sh
 # End Time
 end_time=$(date +"%d/%m/%Y %H:%M:%S")
 echo "Script finished at: $end_time"
+
+read -n 1 -s -r -p "Press any key to continue..."
+echo

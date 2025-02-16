@@ -6,28 +6,20 @@ HOST_DIR_NAME=${PWD}
 # Include functions
 source $(dirname $0)/../script/__functions.sh
 
+# Load default values and environment variables
+source $(dirname $0)/../script/__load_env.sh
+
 # Default values (fallback if not in .env) - These are now overridden by .env
 DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}" # Use .env var if set, else default
 # Launch a new VM with the specified requirements
-multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n nginx-cluster-balancer
+multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n $LOAD_BALANCE_HOSTNAME
 
-# Definisci K8S_HOSTS includendo solo quelle macchine che hanno un IP valido
-K8S_HOSTS=$(multipass list \
-  | grep "k8s-" \
-  | grep -E -v "Name|\-\-" \
-  | awk '{ printf "%s\t%s.loc\n", $3, $1 }')
+add_machine_to_dns $LOAD_BALANCE_HOSTNAME
 
-# Verifica se almeno una VM NON ha un IP (controlla "-" o "--" o campo vuoto)
-missing_ips=$(multipass list \
-  | grep "k8s-" \
-  | grep -v "Name" \
-  | awk '$3 == "-" || $3 == "--" || $3 == ""')
-
-if [ -n "$missing_ips" ]; then
-  echo "Errore: almeno una VM non ha un IP:" >&2
-  echo "$missing_ips" >&2
-  exit 1
-fi
+DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+multipass exec "${LOAD_BALANCE_HOSTNAME}" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
+nameserver '"$DNS_IP"'
+EOF'
 
 # Trova tutte le istanze esistenti di ${VM_NODE_PREFIX}X
 node_instances=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}')
@@ -36,23 +28,20 @@ node_instances=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}')
 nginx_config="${HOST_DIR_NAME}/config/nginx_lb.conf"
 
 # Sostituisci le variabili d'ambiente nel template
-VARIABLES_TO_REPLACE='$VM_MAIN_NAME $VM_NODE_PREFIX'
+VARIABLES_TO_REPLACE='$VM_MAIN_NAME $VM_NODE_PREFIX $DNS_SUFFIX'
 envsubst "$VARIABLES_TO_REPLACE" < ${HOST_DIR_NAME}/config/nginx_lb.template > "$nginx_config"
 
 # Aggiungi tutte le istanze di k8s-node{n} al file di configurazione
 for node in $node_instances; do
-  sed -i "/upstream k8s-cluster-go {/a\    server ${node}.loc:31001;" "$nginx_config"
-  sed -i "/upstream k8s-cluster-php {/a\    server ${node}.loc:31002;" "$nginx_config"
+  sed -i "/upstream k8s-cluster-go {/a\    server ${node}.${DNS_SUFFIX}:31001;" "$nginx_config"
+  sed -i "/upstream k8s-cluster-php {/a\    server ${node}.${DNS_SUFFIX}:31002;" "$nginx_config"
 done
 
 # Mount a directory from the host into the VM
-multipass mount ${HOST_DIR_NAME}/config nginx-cluster-balancer:/mnt/host-config
+multipass mount ${HOST_DIR_NAME}/config $LOAD_BALANCE_HOSTNAME:/mnt/host-config
 
 # Access the newly created VM
-multipass shell nginx-cluster-balancer <<EOF
-
-sudo tee -a /etc/hosts <<<"$K8S_HOSTS"
-sudo tee -a /etc/cloud/templates/hosts.debian.tmpl <<<"$K8S_HOSTS"
+multipass shell $LOAD_BALANCE_HOSTNAME <<EOF
 
 # Update the repositories
 sudo apt update
@@ -77,7 +66,7 @@ sudo systemctl enable nginx
 EOF
 
 # Unmount the directory from the VM
-multipass umount nginx-cluster-balancer:/mnt/host-config
+multipass umount $LOAD_BALANCE_HOSTNAME:/mnt/host-config
 
 # Rimuovi il file di configurazione temporaneo
 rm -rf "$nginx_config"
@@ -85,49 +74,57 @@ rm -rf "$nginx_config"
 # List the VMs
 multipass list
 
-# Get the IP address of the VM
-VM_IP=$(multipass info nginx-cluster-balancer | grep IPv4 | awk '{print $2}')
+VM_IP=$(multipass info $LOAD_BALANCE_HOSTNAME | grep IPv4 | awk '{print $2}')
 
-echo
-echo
+add_machine_to_dns "demo-go" $VM_IP
+add_machine_to_dns "demo-php" $VM_IP
 
-# Print instructions to add to the host's /etc/hosts file
-msg_warn "Add the following line to the /etc/hosts file of the host:"
-msg_warn "$VM_IP nginx-cluster-balancer demo-go.loc demo-php.loc"
+read -n 1 -s -r -p "Press any key to continue..."
 echo
 
-# Ask the user if they want to execute the command
-while true; do
-    read -r -p "Do you want to execute this command now? (y/n): " choice
-    case "$choice" in
-        y|Y)
-            break  # Exit the loop if the user says yes
-            ;;
-        n|N)
-            echo "Skipping /etc/hosts update."
-            exit 0 # Return 0 to indicate that the operation was skipped, not an error.
-            ;;
-        *)
-            echo "Invalid input. Please enter 'y' or 'n'."
-            ;;
-    esac
-done
+# # Get the IP address of the VM
+# VM_IP=$(multipass info $LOAD_BALANCE_HOSTNAME | grep IPv4 | awk '{print $2}')
 
-# Check if the line already exists and update or add it
-if grep -q "nginx-cluster-balancer demo-go.loc demo-php.loc" /etc/hosts; then
-    msg_info "Updating /etc/hosts..."
-    if sudo sed -i.bak -E "/nginx-cluster-balancer demo-go.loc demo-php.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
-        msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
-    else
-        msg_error "Error updating /etc/hosts."
-        exit 1 # 1 to indicate an error
-    fi
-else
-    msg_info "Adding entry to /etc/hosts..."
-    if echo "$VM_IP nginx-cluster-balancer demo-go.loc demo-php.loc" | sudo tee -a /etc/hosts; then
-        msg_info "Added entry to /etc/hosts."
-    else
-        msg_error "Error adding entry to /etc/hosts."
-        exit 1 # 1 to indicate an error
-    fi
-fi
+# echo
+# echo
+
+# # Print instructions to add to the host's /etc/hosts file
+# msg_warn "Add the following line to the /etc/hosts file of the host:"
+# msg_warn "$VM_IP $LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}"
+# echo
+
+# # Ask the user if they want to execute the command
+# while true; do
+#     read -r -p "Do you want to execute this command now? (y/n): " choice
+#     case "$choice" in
+#         y|Y)
+#             break  # Exit the loop if the user says yes
+#             ;;
+#         n|N)
+#             echo "Skipping /etc/hosts update."
+#             exit 0 # Return 0 to indicate that the operation was skipped, not an error.
+#             ;;
+#         *)
+#             echo "Invalid input. Please enter 'y' or 'n'."
+#             ;;
+#     esac
+# done
+
+# # Check if the line already exists and update or add it
+# if grep -q "$LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}" /etc/hosts; then
+#     msg_info "Updating /etc/hosts..."
+#     if sudo sed -i.bak -E "/$LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
+#         msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
+#     else
+#         msg_error "Error updating /etc/hosts."
+#         exit 1 # 1 to indicate an error
+#     fi
+# else
+#     msg_info "Adding entry to /etc/hosts..."
+#     if echo "$VM_IP $LOAD_BALANCE_HOSTNAME demo-go.${DNS_SUFFIX} demo-php.${DNS_SUFFIX}" | sudo tee -a /etc/hosts; then
+#         msg_info "Added entry to /etc/hosts."
+#     else
+#         msg_error "Error adding entry to /etc/hosts."
+#         exit 1 # 1 to indicate an error
+#     fi
+# fi

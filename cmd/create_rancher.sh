@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e
 
-# Load .env file if it exists
-if [[ -f .env ]]; then
-  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
-fi
-
 HOST_DIR_NAME=${PWD}
 
 # Include functions (assuming this is defined elsewhere)

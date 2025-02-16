@@ -1,11 +1,6 @@
 #!/bin/bash
 source $(dirname $0)/__functions.sh
 
-# Load .env file if it exists
-if [[ -f .env ]]; then
-  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
-fi
-
 IP="$(hostname)"
 
 NODE_TYPE=${2:-worker} # If not specified, node type will default to 'worker'

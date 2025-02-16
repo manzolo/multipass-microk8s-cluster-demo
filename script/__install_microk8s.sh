@@ -1,11 +1,6 @@
 #!/bin/bash
 source $(dirname $0)/__functions.sh
 
-# Load .env file if it exists
-if [[ -f .env ]]; then
-  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
-fi
-
 if test "$(hostname)" = "${VM_MAIN_NAME}"
 then 
     #NET=10.0.0 # internal subnet of virtual machines

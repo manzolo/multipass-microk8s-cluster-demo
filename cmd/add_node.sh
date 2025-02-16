@@ -34,16 +34,16 @@ multipass start $VM_MAIN_NAME
 
 # Wait for cluster to be ready
 msg_warn "Waiting for microk8s to be ready..."
-while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready; do
+while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready > /dev/null; do
     sleep 10
 done
 
 rm -rf ./_join_node.sh
 msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
-run_command_on_node $VM_MAIN_NAME "script/_join_cluster_helper.sh"
+run_command_on_node $VM_MAIN_NAME "script/__join_cluster_helper.sh"
 
 msg_warn "Installing microk8s on ${VM_NODE_PREFIX}$counter"
-run_command_on_node "${VM_NODE_PREFIX}$counter" "script/_install_microk8s.sh"
+run_command_on_node "${VM_NODE_PREFIX}$counter" "script/__install_microk8s.sh"
 
 multipass umount ${VM_MAIN_NAME}:$(multipass info ${VM_MAIN_NAME} | grep Mounts | awk '{print $4}')
 multipass umount "${VM_NODE_PREFIX}$counter:$(multipass info "${VM_NODE_PREFIX}$counter" | grep Mounts | awk '{print $4}')"

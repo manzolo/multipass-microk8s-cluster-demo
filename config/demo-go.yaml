@@ -43,7 +43,8 @@ spec:
       containers:
       - name: demo-go
         image: manzolo/demo-go:0.2.0
-        imagePullPolicy: Always
+        #imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent        
         ports:
         - containerPort: 8080
           name: http-web-svc

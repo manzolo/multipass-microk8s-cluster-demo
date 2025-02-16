@@ -43,7 +43,8 @@ spec:
       containers:
       - name: demo-php
         image: manzolo/demo-php:0.2.0
-        imagePullPolicy: Always
+        #imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent        
         ports:
         - containerPort: 80
           name: http-web-svc

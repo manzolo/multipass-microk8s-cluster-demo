@@ -172,5 +172,3 @@ msg_info "http://$IP:$NODEPORT_PHP"
 # End Time
 end_time=$(date +"%d/%m/%Y %H:%M:%S")
 echo "Script finished at: $end_time"
-
-echo "Total script execution time: ${duration_minutes}m ${duration_seconds}s"

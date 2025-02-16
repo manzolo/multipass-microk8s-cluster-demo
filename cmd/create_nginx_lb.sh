@@ -103,9 +103,9 @@ while true; do
 done
 
 # Check if the line already exists and update or add it
-if grep -q "nginx-cluster-balancer demo-go.loc demo-php.loc" /etc/hosts; then
+if grep -q "$LOAD_BALANCE_HOSTNAME demo-go.loc demo-php.loc" /etc/hosts; then
     msg_info "Updating /etc/hosts..."
-    if sudo sed -i.bak -E "/nginx-cluster-balancer demo-go.loc demo-php.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
+    if sudo sed -i.bak -E "/$LOAD_BALANCE_HOSTNAME demo-go.loc demo-php.loc/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
         msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
     else
         msg_error "Error updating /etc/hosts."
@@ -113,7 +113,7 @@ if grep -q "nginx-cluster-balancer demo-go.loc demo-php.loc" /etc/hosts; then
     fi
 else
     msg_info "Adding entry to /etc/hosts..."
-    if echo "$VM_IP nginx-cluster-balancer demo-go.loc demo-php.loc" | sudo tee -a /etc/hosts; then
+    if echo "$VM_IP $LOAD_BALANCE_HOSTNAME demo-go.loc demo-php.loc" | sudo tee -a /etc/hosts; then
         msg_info "Added entry to /etc/hosts."
     else
         msg_error "Error adding entry to /etc/hosts."

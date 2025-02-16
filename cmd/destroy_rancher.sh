@@ -3,10 +3,15 @@
 #Include functions
 source $(dirname $0)/../script/__functions.sh
 
-multipass stop --force rancher
-multipass delete --purge rancher
+# Load default values and environment variables
+source $(dirname $0)/../script/__load_env.sh
+
+multipass stop --force ${RANCHER_HOSTNAME}
+multipass delete --purge ${RANCHER_HOSTNAME}
 multipass purge
 
-msg_warn "Remove rancher.loc from /etc/hosts"
+remove_machine_from_dns $RANCHER_HOSTNAME
 
-sudo sed -i -E "/rancher.loc/d" /etc/hosts
+msg_warn "Remove ${RANCHER_HOSTNAME}.${DNS_SUFFIX} from /etc/hosts"
+
+sudo sed -i -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/d" /etc/hosts

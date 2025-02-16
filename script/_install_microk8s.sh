@@ -31,7 +31,15 @@ then
     #sudo netplan apply
     #sudo apt install nfs-common -y
     sudo swapoff -a
+    #sudo apt update -qq
+    #sudo apt upgrade -qqy
+    #sudo snap refresh
     sudo snap install microk8s --classic --stable
+    #sudo snap install microk8s --channel=latest/stable --classic
+    #https://github.com/canonical/microk8s/issues/4361
+    #sudo touch /var/snap/microk8s/7661/var/kubernetes/backend/localnode.yaml > /dev/null
+    #sudo microk8s stop
+    #sudo microk8s start
     # add user to microk8s sudoers group
     sudo usermod -a -G microk8s ubuntu
 
@@ -60,6 +68,9 @@ then
     microk8s enable dns
     microk8s enable dashboard
     microk8s enable helm
+
+    sleep 2
+
     #sudo cp config/hosts /etc/hosts
     ##sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
     ##sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'

@@ -149,6 +149,39 @@ while true; do
   sleep 5  # Aspetta 5 secondi prima di riprovare
 done
 
+# MOTD generation with color codes
+MOTD_COMMANDS=$(cat <<EOF
+$(tput setaf 6)$(tput bold)================================================
+$(tput setaf 6)$(tput bold)  Rancher Management Commands
+$(tput setaf 6)$(tput bold)================================================
+$(tput sgr0)
+
+$(tput setaf 3)$(tput bold)🔄 Restart Rancher:$(tput sgr0)
+$(tput setaf 3)docker compose down && docker compose rm -f && docker compose up -d$(tput sgr0)
+
+$(tput setaf 6)$(tput bold)👀 Check Rancher logs:$(tput sgr0)
+$(tput setaf 6)docker logs rancher -f $(tput sgr0)
+
+$(tput setaf 5)$(tput bold)🔑 Show rancher bootstrap password:$(tput sgr0)
+$(tput setaf 5)docker logs rancher 2>&1 | grep \"Bootstrap Password:\"$(tput sgr0)
+
+Rancher homepage:
+https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}
+
+Use the following link to complete the Rancher setup:"
+https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=____BOOTSTRAP_PASSWORD____
+
+$(tput sgr0)
+EOF
+)
+
+msg_warn "Add ${RANCHER_HOSTNAME} MOTD"
+multipass exec ${RANCHER_HOSTNAME} -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
+echo ""
+echo "Commands to run on ${RANCHER_HOSTNAME}:"
+echo "$MOTD_COMMANDS"
+EOF
+
 read -n 1 -s -r -p "Press any key to continue..."
 echo
 

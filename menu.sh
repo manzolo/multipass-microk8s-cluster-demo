@@ -22,10 +22,6 @@ cluster_management() {
         "Add Cluster Node" "Add a node to the Kubernetes cluster"
         "Remove Cluster Node" "Remove a node from the Kubernetes cluster"
         "Destroy Cluster" "Destroy the Kubernetes cluster"
-        "Add DNS Configuration" "Add a custom local cluster DNS configuration"
-        "Remove DNS Configuration" "Remove the custom local DNS configuration"
-        "Start DNS server" "Start local cluster DNS server"
-        "Stop DNS server" "Stop local cluster DNS server"
         "Back" "Return to main menu"
     )
     while true; do
@@ -54,27 +50,11 @@ cluster_management() {
                     echo "Node removal cancelled."
                 fi
                 ;;
-            "Add DNS Configuration")
-                echo "Adding DNS configuration..."
-                ./cmd/add_dns_to_host.sh
-                ;;
-            "Remove DNS Configuration")
-                echo "Removing DNS configuration..."
-                ./cmd/remove_dns_from_host.sh
-                ;;
-            "Start DNS server")
-                echo "Start local DNS server..."
-                multipass start "${DNS_VM_NAME}" && echo "DNS server startup done." || echo "Error starting Nginx LB."
-                ;;
-            "Stop DNS server")
-                echo "Stop local DNS server..."
-                multipass stop "${DNS_VM_NAME}" && echo "DNS server shutdown done." || echo "Error stopping Nginx LB."
-                ;;
             "Back")
                 break
                 ;;
             *)
-                echo "Invalid choice."
+                break
                 ;;
         esac
     done
@@ -108,7 +88,7 @@ load_balancer_management() {
                 break
                 ;;
             *)
-                echo "Invalid choice."
+                break
                 ;;
         esac
     done
@@ -142,7 +122,45 @@ rancher_management() {
                 break
                 ;;
             *)
-                echo "Invalid choice."
+                break
+                ;;
+        esac
+    done
+}
+
+# Function to handle DNS management
+dns_management() {
+    local options=(
+        "Add DNS Configuration" "Add a custom local cluster DNS configuration"
+        "Remove DNS Configuration" "Remove the custom local DNS configuration"
+        "Start DNS server" "Start local cluster DNS server"
+        "Stop DNS server" "Stop local cluster DNS server"
+        "Back" "Return to main menu"
+    )
+    while true; do
+        choice=$(display_menu "Rancher Management" options[@])
+        case "$choice" in
+            "Add DNS Configuration")
+                echo "Adding DNS configuration..."
+                ./cmd/add_dns_to_host.sh
+                ;;
+            "Remove DNS Configuration")
+                echo "Removing DNS configuration..."
+                ./cmd/remove_dns_from_host.sh
+                ;;
+            "Start DNS server")
+                echo "Start local DNS server..."
+                multipass start "${DNS_VM_NAME}" && echo "DNS server startup done." || echo "Error starting Nginx LB."
+                ;;
+            "Stop DNS server")
+                echo "Stop local DNS server..."
+                multipass stop "${DNS_VM_NAME}" && echo "DNS server shutdown done." || echo "Error stopping Nginx LB."
+                ;;
+            "Back")
+                break
+                ;;
+            *)
+                break
                 ;;
         esac
     done
@@ -152,6 +170,7 @@ rancher_management() {
 main_menu() {
     local options=(
         "Cluster Management" "Manage Kubernetes cluster"
+        "DNS Management" "Manage local cluster DNS server"
         "Load Balancer Management" "Manage Nginx Load Balancer"
         "Rancher Management" "Manage Rancher"
         "Uninstall All" "Destroy Kubernetes cluster, Nginx LB, and Rancher"
@@ -162,6 +181,9 @@ main_menu() {
         case "$choice" in
             "Cluster Management")
                 cluster_management
+                ;;
+            "DNS Management")
+                dns_management
                 ;;
             "Load Balancer Management")
                 load_balancer_management
@@ -183,7 +205,7 @@ main_menu() {
                 break
                 ;;
             *)
-                echo "Invalid choice."
+                break
                 ;;
         esac
     done

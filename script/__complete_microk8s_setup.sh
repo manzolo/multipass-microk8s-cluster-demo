@@ -1,7 +1,7 @@
 #!/bin/bash
 
 msg_warn "Waiting for microk8s to be ready..."
-while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready > /dev/null; do
+while ! multipass exec ${VM_MAIN_NAME} -- microk8s status --wait-ready  > /dev/null 2>&1; do
     sleep 10
 done
 

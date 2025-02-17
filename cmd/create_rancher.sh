@@ -9,27 +9,6 @@ source $(dirname $0)/../script/__functions.sh
 # Load default values and environment variables
 source $(dirname $0)/../script/__load_env.sh
 
-# update_hosts_vms() {
-#     local vm_name=$1
-#     local vm_status=$(multipass info "$vm_name" --format csv | tail -1 | cut -d, -f2)
-
-#     echo "Inside update_hosts_vms for: $vm_name"  # Debugging: Show which VM
-
-#     if [[ "$vm_status" != "Running" ]]; then
-#         msg_warn "La VM $vm_name non è attiva. Saltando..."
-#         return
-#     fi
-#     echo "VM $vm_name is running" # Debugging
-
-#     msg_info "Update /etc/hosts on $vm_name..."
-
-#     # Use the Rancher VM's IP ($VM_IP) for ALL Kubernetes nodes
-#     multipass exec $vm_name -- sudo bash -c 'grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts && sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/'"$VM_IP"'/" /etc/hosts || echo "'"$VM_IP"' ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" >> /etc/hosts'
-
-#     msg_info "/etc/hosts contents on $vm_name:"
-#     multipass exec "$vm_name" -- cat /etc/hosts
-# }
-
 # Function to create a VM and run commands
 create_and_configure_vm() {
     local vm_name=$1
@@ -54,7 +33,7 @@ EOF'
 
     # --- Install Docker ---
     msg_info "Installing Docker on $vm_name..."
-    if ! multipass shell $vm_name <<EOF
+    if ! multipass shell $vm_name  > /dev/null 2>&1 <<EOF
 #!/bin/bash
 set -e
 
@@ -248,3 +227,25 @@ echo
 # if [[ "$choice_hosts" == "y" || "$choice_hosts" == "Y" ]]; then
 #     update_hosts_host  # Update the host's /etc/hosts
 # fi
+
+
+# update_hosts_vms() {
+#     local vm_name=$1
+#     local vm_status=$(multipass info "$vm_name" --format csv | tail -1 | cut -d, -f2)
+
+#     echo "Inside update_hosts_vms for: $vm_name"  # Debugging: Show which VM
+
+#     if [[ "$vm_status" != "Running" ]]; then
+#         msg_warn "La VM $vm_name non è attiva. Saltando..."
+#         return
+#     fi
+#     echo "VM $vm_name is running" # Debugging
+
+#     msg_info "Update /etc/hosts on $vm_name..."
+
+#     # Use the Rancher VM's IP ($VM_IP) for ALL Kubernetes nodes
+#     multipass exec $vm_name -- sudo bash -c 'grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts && sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/'"$VM_IP"'/" /etc/hosts || echo "'"$VM_IP"' ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" >> /etc/hosts'
+
+#     msg_info "/etc/hosts contents on $vm_name:"
+#     multipass exec "$vm_name" -- cat /etc/hosts
+# }

@@ -6,9 +6,9 @@ source $(dirname $0)/../script/__functions.sh
 # Load default values and environment variables
 source $(dirname $0)/../script/__load_env.sh
 
-multipass stop --force ${RANCHER_HOSTNAME}
-multipass delete --purge ${RANCHER_HOSTNAME}
-multipass purge
+multipass stop --force ${RANCHER_HOSTNAME} > /dev/null 2>&1
+multipass delete --purge ${RANCHER_HOSTNAME} > /dev/null 2>&1
+multipass purge > /dev/null 2>&1
 
 remove_machine_from_dns $RANCHER_HOSTNAME
 

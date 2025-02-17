@@ -16,11 +16,6 @@ multipass launch $DEFAULT_UBUNTU_VERSION -m 2Gb -d 5Gb -c 1 -n $LOAD_BALANCE_HOS
 
 add_machine_to_dns $LOAD_BALANCE_HOSTNAME
 
-DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
-multipass exec "${LOAD_BALANCE_HOSTNAME}" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
-nameserver '"$DNS_IP"'
-EOF'
-
 # Trova tutte le istanze esistenti di ${VM_NODE_PREFIX}X
 node_instances=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}')
 
@@ -41,13 +36,13 @@ done
 multipass mount ${HOST_DIR_NAME}/config $LOAD_BALANCE_HOSTNAME:/mnt/host-config
 
 # Access the newly created VM
-multipass shell $LOAD_BALANCE_HOSTNAME <<EOF
+multipass shell $LOAD_BALANCE_HOSTNAME  > /dev/null 2>&1 <<EOF
 
 # Update the repositories
-sudo apt update
+sudo apt -qq update > /dev/null 2>&1
 
 # Install Nginx
-sudo apt install -y nginx
+sudo apt -yq install nginx > /dev/null 2>&1
 
 # Copy the Nginx configuration file from the mounted directory
 sudo cp /mnt/host-config/nginx_lb.conf /etc/nginx/sites-available/cluster-balancer
@@ -59,9 +54,9 @@ sudo ln -s /etc/nginx/sites-available/cluster-balancer /etc/nginx/sites-enabled/
 sudo nginx -t
 
 # Reload Nginx to apply the new configuration
-sudo systemctl reload nginx
+sudo systemctl reload nginx > /dev/null 2>&1
 
-sudo systemctl enable nginx
+sudo systemctl enable nginx > /dev/null 2>&1
 
 EOF
 

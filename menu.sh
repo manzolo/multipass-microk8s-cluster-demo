@@ -19,6 +19,7 @@ cluster_management() {
         "Create Cluster" "Create a Kubernetes cluster"
         "Start Cluster" "Start the Kubernetes cluster"
         "Stop Cluster" "Stop the Kubernetes cluster"
+        "Shell on ${VM_MAIN_NAME}" "Shell on ${VM_MAIN_NAME}"
         "Add Cluster Node" "Add a node to the Kubernetes cluster"
         "Remove Cluster Node" "Remove a node from the Kubernetes cluster"
         "Destroy Cluster" "Destroy the Kubernetes cluster"
@@ -35,6 +36,9 @@ cluster_management() {
                 ;;
             "Start Cluster")
                 ./cmd/start_cluster.sh && echo "Cluster startup done." || echo "Error during cluster startup."
+                ;;
+            "Shell on ${VM_MAIN_NAME}")
+                multipass shell "${VM_MAIN_NAME}" && echo "Shell ${VM_MAIN_NAME} OK." || echo "Error shell ${VM_MAIN_NAME}."
                 ;;
             "Stop Cluster")
                 ./cmd/stop_cluster.sh && echo "Cluster shutdown done." || echo "Error during cluster shutdown."
@@ -67,6 +71,7 @@ load_balancer_management() {
         "Destroy Nginx Load Balancer" "Destroy Nginx load balancer"
         "Start Nginx Load Balancer" "Start Nginx load balancer"
         "Stop Nginx Load Balancer" "Stop Nginx load balancer"
+        "Shell on ${LOAD_BALANCE_HOSTNAME}" "Shell on ${LOAD_BALANCE_HOSTNAME}"
         "Back" "Return to main menu"
     )
     while true; do
@@ -83,6 +88,9 @@ load_balancer_management() {
                 ;;
             "Stop Nginx Load Balancer")
                 multipass stop "${LOAD_BALANCE_HOSTNAME}" && echo "Nginx LB shutdown done." || echo "Error stopping Nginx LB."
+                ;;
+            "Shell on ${LOAD_BALANCE_HOSTNAME}")
+                multipass shell "${LOAD_BALANCE_HOSTNAME}" && echo "Shell Nginx LB OK." || echo "Error shell Nginx LB."
                 ;;
             "Back")
                 break
@@ -101,6 +109,7 @@ rancher_management() {
         "Start Rancher" "Start Rancher"
         "Stop Rancher" "Stop Rancher"
         "Destroy Rancher" "Destroy Rancher"
+        "Shell on ${RANCHER_HOSTNAME}" "Shell on ${RANCHER_HOSTNAME}"
         "Back" "Return to main menu"
     )
     while true; do
@@ -117,6 +126,9 @@ rancher_management() {
                 ;;
             "Stop Rancher")
                 multipass stop "${RANCHER_HOSTNAME}" && echo "Rancher shutdown done." || echo "Error stopping Rancher."
+                ;;
+            "Shell on ${RANCHER_HOSTNAME}")
+                multipass shell "${RANCHER_HOSTNAME}" && echo "Rancher shell OK." || echo "Error shell Rancher."
                 ;;
             "Back")
                 break
@@ -135,6 +147,7 @@ dns_management() {
         "Remove DNS Configuration" "Remove the custom local DNS configuration"
         "Start DNS server" "Start local cluster DNS server"
         "Stop DNS server" "Stop local cluster DNS server"
+        "Shell on ${DNS_VM_NAME}" "Shell on ${DNS_VM_NAME}"
         "Back" "Return to main menu"
     )
     while true; do
@@ -155,6 +168,9 @@ dns_management() {
             "Stop DNS server")
                 echo "Stop local DNS server..."
                 multipass stop "${DNS_VM_NAME}" && echo "DNS server shutdown done." || echo "Error stopping Nginx LB."
+                ;;
+            "Shell on ${DNS_VM_NAME}")
+                multipass shell "${DNS_VM_NAME}" && echo "DNS server shell OK." || echo "Error DNS server shell."
                 ;;
             "Back")
                 break

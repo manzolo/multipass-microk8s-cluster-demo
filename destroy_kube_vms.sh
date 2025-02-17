@@ -10,15 +10,15 @@ msg_warn "== Clean vms cluster"
 
 multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}' | while read node; do
 msg_warn "remove $node"
-multipass delete --purge $node
+multipass delete --purge $node > /dev/null 2>&1
 done
 
 echo "remove ${VM_MAIN_NAME}"
-multipass delete --purge ${VM_MAIN_NAME}
-multipass purge
+multipass delete --purge ${VM_MAIN_NAME} > /dev/null 2>&1
+multipass purge > /dev/null 2>&1
 
-multipass delete --purge ${DNS_VM_NAME}
-multipass purge
+multipass delete --purge ${DNS_VM_NAME} > /dev/null 2>&1
+multipass purge > /dev/null 2>&1
 
 multipass list
 

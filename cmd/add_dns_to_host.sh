@@ -16,7 +16,7 @@ sudo mkdir -p "$CONF_DIR"
 # Crea il file di configurazione
 msg_info "Add DNS server $DNS_IP for .${DNS_SUFFIX} domain..."
 
-sudo tee ${CONF_FILE} <<EOF
+sudo tee ${CONF_FILE} > /dev/null 2>&1 <<EOF
 [Match]
 Domains=*.${DNS_SUFFIX}
 

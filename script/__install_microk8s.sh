@@ -46,7 +46,7 @@ then
 
     #sudo chown -f -R ubuntu ~/.kube
     #newgrp microk8s
-    #sudo microk8s status --wait-ready > /dev/null
+    #sudo microk8s status --wait-ready  > /dev/null 2>&1
 
     #(cd ~/.kube && sudo microk8s config > config) & disown
     #sudo ufw allow in on cni0 && sudo ufw allow out on cni0
@@ -63,7 +63,7 @@ then
     microk8s enable dns
     microk8s enable dashboard
     microk8s enable helm
-    sudo microk8s status --wait-ready
+    sudo microk8s status --wait-ready > /dev/null 2>&1
     #sudo cp config/hosts /etc/hosts
     ##sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
     ##sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'

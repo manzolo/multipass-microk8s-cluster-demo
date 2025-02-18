@@ -30,6 +30,9 @@ EOF
 # Non usare i nameserver dal file /etc/resolv.conf
 no-resolv
 
+# Ignore /etc/hosts
+no-hosts
+
 # Imposta i nameserver upstream
 server=1.1.1.1
 server=8.8.8.8
@@ -42,7 +45,7 @@ local=/"'${DNS_SUFFIX}'"/
 #Specifica un file addizionale per host locali personalizzati
 addn-hosts=/etc/dnsmasq.d/local.conf
 EOF
-
+    #sudo sed -i -E "/'${DNS_VM_NAME}'/d" /etc/hosts
     sudo systemctl restart dnsmasq
     sudo dnsmasq --test
 '

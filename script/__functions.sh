@@ -27,6 +27,10 @@ function msg_fatal() {
   exit 1
 }
 
+function press_any_key() {
+    read -n 1 -s -r -p "Press any key to continue"
+}
+
 check_command_exists() {
     if ! command -v $1 &> /dev/null
     then

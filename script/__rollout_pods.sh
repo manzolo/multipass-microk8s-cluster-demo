@@ -5,6 +5,8 @@ rm -rf script/_join_node.sh
 rm -rf script/_test.sh
 rm -rf config/hosts
 
+sleep 5
+
 kubectl apply -f config/demo-go.yaml
 kubectl rollout status deployment/demo-go -n demo-go
 

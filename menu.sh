@@ -23,6 +23,7 @@ cluster_management() {
         "Add Cluster Node" "Add a node to the Kubernetes cluster"
         "Remove Cluster Node" "Remove a node from the Kubernetes cluster"
         "Destroy Cluster" "Destroy the Kubernetes cluster"
+        "Show Cluster" "Show Cluster information"
         "Back" "Return to main menu"
     )
     while true; do
@@ -39,6 +40,8 @@ cluster_management() {
                 ;;
             "Shell on ${VM_MAIN_NAME}")
                 multipass shell "${VM_MAIN_NAME}" && echo "Shell ${VM_MAIN_NAME} OK." || echo "Error shell ${VM_MAIN_NAME}."
+                press_any_key
+                echo
                 ;;
             "Stop Cluster")
                 ./cmd/stop_cluster.sh && echo "Cluster shutdown done." || echo "Error during cluster shutdown."
@@ -52,8 +55,16 @@ cluster_management() {
                     ./cmd/remove_node.sh "$NODE_NAME" && echo "Node removal done." || echo "Error during node removal."
                 else
                     echo "Node removal cancelled."
+                    press_any_key
+                    echo
                 fi
                 ;;
+            "Show Cluster")
+                ./cmd/show_cluster.sh || echo "Error showing cluster information."
+                press_any_key
+                    echo
+                ;;
+                
             "Back")
                 break
                 ;;
@@ -88,9 +99,13 @@ load_balancer_management() {
                 ;;
             "Stop Nginx Load Balancer")
                 multipass stop "${LOAD_BALANCE_HOSTNAME}" && echo "Nginx LB shutdown done." || echo "Error stopping Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Shell on ${LOAD_BALANCE_HOSTNAME}")
                 multipass shell "${LOAD_BALANCE_HOSTNAME}" && echo "Shell Nginx LB OK." || echo "Error shell Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Back")
                 break
@@ -123,12 +138,18 @@ rancher_management() {
                 ;;
             "Start Rancher")
                 multipass start "${RANCHER_HOSTNAME}" && echo "Rancher startup done." || echo "Error starting Rancher."
+                press_any_key
+                echo
                 ;;
             "Stop Rancher")
                 multipass stop "${RANCHER_HOSTNAME}" && echo "Rancher shutdown done." || echo "Error stopping Rancher."
+                press_any_key
+                echo
                 ;;
             "Shell on ${RANCHER_HOSTNAME}")
                 multipass shell "${RANCHER_HOSTNAME}" && echo "Rancher shell OK." || echo "Error shell Rancher."
+                press_any_key
+                echo
                 ;;
             "Back")
                 break
@@ -164,13 +185,19 @@ dns_management() {
             "Start DNS server")
                 echo "Start local DNS server..."
                 multipass start "${DNS_VM_NAME}" && echo "DNS server startup done." || echo "Error starting Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Stop DNS server")
                 echo "Stop local DNS server..."
                 multipass stop "${DNS_VM_NAME}" && echo "DNS server shutdown done." || echo "Error stopping Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Shell on ${DNS_VM_NAME}")
                 multipass shell "${DNS_VM_NAME}" && echo "DNS server shell OK." || echo "Error DNS server shell."
+                press_any_key
+                echo
                 ;;
             "Back")
                 break

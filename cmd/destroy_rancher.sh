@@ -16,5 +16,5 @@ remove_machine_from_dns $RANCHER_HOSTNAME
 
 # sudo sed -i -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/d" /etc/hosts
 
-read -n 1 -s -r -p "Press any key to continue..."
+press_any_key
 echo

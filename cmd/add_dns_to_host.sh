@@ -29,5 +29,5 @@ sudo systemctl restart systemd-resolved
 
 msg_info "Check with: resolvectl status"
 
-read -n 1 -s -r -p "Press any key to continue..."
+press_any_key
 echo

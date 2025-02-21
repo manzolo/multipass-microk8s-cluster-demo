@@ -18,5 +18,5 @@ remove_machine_from_dns demo-php
 
 # sudo sed -i -E "/$LOAD_BALANCE_HOSTNAME/d" /etc/hosts
 
-read -n 1 -s -r -p "Press any key to continue..."
+press_any_key
 echo

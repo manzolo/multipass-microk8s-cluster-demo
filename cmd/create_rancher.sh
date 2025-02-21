@@ -182,7 +182,7 @@ echo "Commands to run on ${RANCHER_HOSTNAME}:"
 echo "$MOTD_COMMANDS"
 EOF
 
-read -n 1 -s -r -p "Press any key to continue..."
+press_any_key
 echo
 
 #set -e  # Riabilita set -e

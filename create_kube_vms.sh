@@ -48,5 +48,5 @@ source $(dirname $0)/script/__display_cluster_info.sh
 end_time=$(date +"%d/%m/%Y %H:%M:%S")
 echo "Script finished at: $end_time"
 
-read -n 1 -s -r -p "Press any key to continue..."
+press_any_key
 echo

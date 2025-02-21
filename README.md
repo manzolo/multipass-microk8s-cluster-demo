@@ -294,4 +294,4 @@ $ cd multipass-microk8s-cluster-demo
 ./destroy_kube_vms.sh
 ```
 ## Demo video
-[![Watch demo](http://img.youtube.com/vi/DgNdGkz17pI/0.jpg)](https://youtu.be/60-j3D5CzHg "Demo video")
+[![Watch demo on youtube](https://img.youtube.com/vi/60-j3D5CzHg/0.jpg)](https://www.youtube.com/watch?v=60-j3D5CzHg)

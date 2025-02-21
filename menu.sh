@@ -60,7 +60,7 @@ cluster_management() {
                 fi
                 ;;
             "Show Cluster")
-                ./cmd/show_cluster.sh || echo "Error showing cluster information."
+                ./script/__show_cluster.sh || echo "Error showing cluster information."
                 press_any_key
                     echo
                 ;;

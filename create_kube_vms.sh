@@ -43,6 +43,7 @@ source $(dirname $0)/script/__unmount_directories.sh
 
 # Display cluster info and test services
 source $(dirname $0)/script/__display_cluster_info.sh
+source $(dirname $0)/script/__show_cluster.sh
 
 # End Time
 end_time=$(date +"%d/%m/%Y %H:%M:%S")

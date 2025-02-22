@@ -168,10 +168,8 @@ $(tput setaf 5)docker logs rancher 2>&1 | grep \"Bootstrap Password:\"$(tput sgr
 Rancher homepage:
 https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}
 
-Use the following link to complete the Rancher setup:"
-https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=____BOOTSTRAP_PASSWORD____
-
-$(tput sgr0)
+Use the following link to complete the Rancher setup:
+https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=BOOTSTRAP_PASSWORD_HERE
 EOF
 )
 

@@ -46,14 +46,14 @@ $(tput sgr0)
 $(tput setaf 9)$(tput bold)🖥️ Enable dashboard:$(tput sgr0)
 $(tput setaf 8)microk8s enable community$(tput sgr0)
 $(tput setaf 8)microk8s enable dashboard-ingress --hostname ${VM_MAIN_NAME}.${DNS_SUFFIX} --allow 0.0.0.0/0$(tput sgr0)
-$(tput setaf 1)$(tput bold)🔑 Show MicroK8s Dashboard Token:$(tput sgr0)
 
-$(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token | grep "token:" | awk '{print \$2}'$(tput sgr0)
+$(tput setaf 1)$(tput bold)🔑 Show MicroK8s Dashboard Token:$(tput sgr0)
+$(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token | grep "token:" | awk '{print \$'2'}'$(tput sgr0)
 
 $(tput setaf 2)$(tput bold)🚀 Start dashboard:$(tput sgr0)
 $(tput setaf 8)microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443 --address 0.0.0.0$(tput sgr0)
 
-$(tput setaf 8)https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login$(tput sgr0)
+$(tput setaf 5)https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login$(tput sgr0)
 
 $(tput sgr0)
 EOF

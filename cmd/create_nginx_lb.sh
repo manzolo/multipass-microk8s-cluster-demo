@@ -73,6 +73,8 @@ VM_IP=$(multipass info $LOAD_BALANCE_HOSTNAME | grep IPv4 | awk '{print $2}')
 
 add_machine_to_dns "demo-go" $VM_IP
 add_machine_to_dns "demo-php" $VM_IP
+add_machine_to_dns "static-site" $VM_IP
+
 
 # MOTD generation with color codes
 MOTD_COMMANDS=$(cat <<EOF
@@ -100,10 +102,13 @@ $(tput sgr0)
 
 http://demo-go.${DNS_SUFFIX}
 http://demo-php.${DNS_SUFFIX}
+http://static-site.${DNS_SUFFIX}
+
 
 ping ${VM_MAIN_NAME}.${DNS_SUFFIX}
 ping demo-php.${DNS_SUFFIX}
 ping demo-go.${DNS_SUFFIX}
+ping static-site.${DNS_SUFFIX}
 ping ${VM_NODE_PREFIX}1.${DNS_SUFFIX}
 ping ${DNS_VM_NAME}.${DNS_SUFFIX}
 

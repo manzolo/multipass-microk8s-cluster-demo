@@ -39,6 +39,11 @@ retry_command "kubectl rollout status deployment/demo-go -n demo-go"
 retry_command "kubectl apply -f config/demo-php.yaml"
 retry_command "kubectl rollout status deployment/demo-php -n demo-php"
 
+# Applica la configurazione per static-site e verifica lo stato del rollout
+retry_command "kubectl apply -f config/static-site.yaml"
+retry_command "kubectl rollout status deployment/static-site -n static-site"
+
+
 # Messaggio di avviso e attesa
 msg_warn "Waiting for deploy complete..."
 sleep 10

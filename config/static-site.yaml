@@ -1,67 +1,64 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: demo-go
+  name: static-site
 
 ---
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: demo-go-ingress
-  namespace: demo-go
+  name: static-site-ingress
+  namespace: static-site
 spec:
   rules:
-  - host: demo-go.loc
+  - host: static.loc
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: demo-go
+            name: static-site
             port:
               number: 80
+
+---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-go
-  namespace: demo-go
-  labels:
-    app: demo-go
+  name: static-site
+  namespace: static-site
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: demo-go
+      app: static-site
   template:
     metadata:
       labels:
-        app: demo-go
+        app: static-site
     spec:
       containers:
-      - name: demo-go
-        image: manzolo/demo-go:0.2.0
-        #imagePullPolicy: Always
-        imagePullPolicy: IfNotPresent        
+      - name: nginx
+        image: nginx:alpine
         ports:
-        - containerPort: 8080
-          name: http-web-svc
+        - containerPort: 80
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: demo-go
-  namespace: demo-go
+  name: static-site
+  namespace: static-site
 spec:
   selector:
-    app: demo-go
+    app: static-site
   ports:
     - port: 80
-      targetPort: http-web-svc
+      targetPort: 80
       protocol: TCP
-      nodePort: 31001
+      nodePort: 31003
   type: NodePort

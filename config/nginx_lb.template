@@ -31,3 +31,20 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+
+upstream k8s-static-site {
+    server ${VM_MAIN_NAME}.${DNS_SUFFIX}:31003;
+}
+
+server {
+    listen 80;
+    server_name static-site.${DNS_SUFFIX};
+
+    location / {
+        proxy_pass http://k8s-static-site;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

@@ -5,18 +5,40 @@ rm -rf script/_join_node.sh
 rm -rf script/_test.sh
 rm -rf config/hosts
 
-sleep 5
+# Funzione per eseguire un comando con un numero massimo di tentativi
+function retry_command {
+    local command="$1"
+    local max_attempts=3
+    local attempt=1
+    local wait_time=5
 
-kubectl apply -f config/demo-go.yaml
-kubectl rollout status deployment/demo-go -n demo-go
+    while [ $attempt -le $max_attempts ]; do
+        #echo "Attempt $attempt for: $command"
+        eval $command
 
-kubectl apply -f config/demo-php.yaml
-kubectl rollout status deployment/demo-php -n demo-php
+        if [ $? -eq 0 ]; then
+            #echo "Deploy OK."
+            return 0
+        else
+            echo "Error on deploy. Attempt $attempt of $max_attempts."
+            sleep $wait_time
+        fi
 
-#kubectl scale deployment demo-go --replicas=6 -n demo-go
-msg_warn "Waiting deploy start..."
+        attempt=$((attempt + 1))
+    done
+
+    echo "Command failed after $max_attempts attempts."
+    return 1
+}
+
+# Applica la configurazione per demo-go e verifica lo stato del rollout
+retry_command "kubectl apply -f config/demo-go.yaml"
+retry_command "kubectl rollout status deployment/demo-go -n demo-go"
+
+# Applica la configurazione per demo-php e verifica lo stato del rollout
+retry_command "kubectl apply -f config/demo-php.yaml"
+retry_command "kubectl rollout status deployment/demo-php -n demo-php"
+
+# Messaggio di avviso e attesa
+msg_warn "Waiting for deploy complete..."
 sleep 10
-
-
-
-

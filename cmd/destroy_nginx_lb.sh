@@ -20,5 +20,13 @@ remove_machine_from_dns static-site
 
 # sudo sed -i -E "/$LOAD_BALANCE_HOSTNAME/d" /etc/hosts
 
-press_any_key
-echo
+# Ottieni il PID del processo padre
+PARENT_PID=$(ps -o ppid= -p $$)
+
+# Ottieni il nome del processo padre
+PARENT_NAME=$(ps -o comm= -p $PARENT_PID)
+
+# Verifica se il processo padre è menu.sh
+if [[ "$PARENT_NAME" != "menu.sh" ]]; then
+    press_any_key
+fi

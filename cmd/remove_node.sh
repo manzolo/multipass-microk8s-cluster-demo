@@ -20,6 +20,3 @@ multipass stop --force $MULTIPASS_VM
 multipass delete --purge $MULTIPASS_VM
 multipass purge
 multipass list
-
-press_any_key
-echo

@@ -48,6 +48,3 @@ source $(dirname $0)/script/__show_cluster.sh
 # End Time
 end_time=$(date +"%d/%m/%Y %H:%M:%S")
 echo "Script finished at: $end_time"
-
-press_any_key
-echo

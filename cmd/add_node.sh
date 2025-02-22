@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Include le funzioni
 source $(dirname $0)/../script/__functions.sh
 
@@ -56,6 +58,3 @@ multipass umount "${VM_NODE_PREFIX}$counter:$(multipass info "${VM_NODE_PREFIX}$
 
 # Visualizza l'indirizzo IP e la porta del servizio
 multipass list | grep "k8s-"
-
-press_any_key
-echo

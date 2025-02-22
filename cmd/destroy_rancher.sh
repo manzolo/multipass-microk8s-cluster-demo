@@ -16,5 +16,12 @@ remove_machine_from_dns $RANCHER_HOSTNAME
 
 # sudo sed -i -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/d" /etc/hosts
 
-press_any_key
-echo
+# Ottieni il PID del processo padre
+PARENT_PID=$(ps -o ppid= -p $$)
+
+# Ottieni il nome del processo padre
+PARENT_NAME=$(ps -o comm= -p $PARENT_PID)
+
+if [[ "$PARENT_NAME" != "menu.sh" ]]; then
+    press_any_key
+fi

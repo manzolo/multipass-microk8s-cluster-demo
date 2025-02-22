@@ -27,5 +27,12 @@ rm -rf "./config/hosts"
 
 msg_info "== Vms cluster clear"
 
-press_any_key
-echo
+# Ottieni il PID del processo padre
+PARENT_PID=$(ps -o ppid= -p $$)
+
+# Ottieni il nome del processo padre
+PARENT_NAME=$(ps -o comm= -p $PARENT_PID)
+
+if [[ "$PARENT_NAME" != "menu.sh" ]]; then
+    press_any_key
+fi

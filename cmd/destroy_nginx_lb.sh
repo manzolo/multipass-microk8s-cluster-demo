@@ -13,6 +13,8 @@ multipass purge > /dev/null 2>&1
 remove_machine_from_dns $LOAD_BALANCE_HOSTNAME
 remove_machine_from_dns demo-go
 remove_machine_from_dns demo-php
+remove_machine_from_dns static-site
+
 
 # msg_warn "Remove $LOAD_BALANCE_HOSTNAME from /etc/hosts"
 

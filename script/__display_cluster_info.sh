@@ -66,13 +66,13 @@ echo "Commands to run on ${VM_MAIN_NAME}:"
 echo "$MOTD_COMMANDS"
 EOF
 
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=10 -n demo-go"
-multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=10 -n demo-go
+msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=6 -n demo-go"
+multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=6 -n demo-go
 
 multipass exec ${VM_MAIN_NAME} -- kubectl rollout status deployment/demo-go -n demo-go
 
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=10 -n demo-php"
-multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=10 -n demo-php
+msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=6 -n demo-php"
+multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=6 -n demo-php
 multipass exec ${VM_MAIN_NAME} -- kubectl rollout status deployment/demo-php -n demo-php
 
 msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-go"

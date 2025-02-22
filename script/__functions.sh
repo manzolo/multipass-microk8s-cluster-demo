@@ -106,7 +106,7 @@ add_machine_to_dns() {
 
     # Configura il resolver DNS sulla macchina (solo se è una VM Multipass)
     if multipass list | grep -q "$machine_name"; then
-        msg_info "Configuring DNS resolver on $machine_name to use $DNS_VM_NAME ($DNS_IP)"
+        msg_warn "Configuring DNS resolver on $machine_name to use $DNS_VM_NAME ($DNS_IP)"
         
         # Generate a unique filename (e.g., based on the suffix)
         config_filename="dns-${DNS_SUFFIX//./-}.conf"
@@ -132,11 +132,11 @@ EOF
     fi
 
     # Aggiungi la voce DNS al file di configurazione di dnsmasq
-    msg_info "Add $machine_name.$DNS_SUFFIX -> $machine_ip to DNS on $DNS_VM_NAME"
+    msg_warn "Add $machine_name.$DNS_SUFFIX -> $machine_ip to DNS on $DNS_VM_NAME"
     multipass exec "$DNS_VM_NAME" -- sudo bash -c "echo 'address=/$machine_name.$DNS_SUFFIX/$machine_ip' >> /etc/dnsmasq.d/local.conf"
 
     # Riavvia dnsmasq per applicare le modifiche
-    msg_info "Restart dnsmasq on $DNS_VM_NAME"
+    msg_warn "Restart dnsmasq on $DNS_VM_NAME"
     multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
 
     msg_info "$machine_name.$DNS_SUFFIX added successfully to DNS on $DNS_VM_NAME!"
@@ -145,7 +145,7 @@ EOF
 remove_machine_from_dns() {
     local machine_name=$1
 
-    msg_info "Remove $machine_name.$DNS_SUFFIX from DNS on $DNS_VM_NAME"
+    msg_warn "Remove $machine_name.$DNS_SUFFIX from DNS on $DNS_VM_NAME"
     
     # Controlla se la VM esiste
     if ! multipass info "$DNS_VM_NAME" &>/dev/null; then
@@ -160,5 +160,5 @@ remove_machine_from_dns() {
     msg_info "Riavvio di dnsmasq su $DNS_VM_NAME"
     multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
 
-    msg_info "$machine_name.$DNS_SUFFIX removed from $DNS_VM_NAME!"
+    msg_warn "$machine_name.$DNS_SUFFIX removed from $DNS_VM_NAME!"
 }

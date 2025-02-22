@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Include functions
 source $(dirname $0)/../script/__functions.sh
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 HOST_DIR_NAME=${PWD}
 
 #Include functions

@@ -18,14 +18,29 @@ check_command_exists "multipass" || { msg_error "Multipass is not installed or c
 # Pulisce i file temporanei
 rm -rf "${HOST_DIR_NAME}/script/_test.sh"
 
-# Trova il numero massimo di istanze ${VM_NODE_PREFIX}X
-max_node_num=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}' | sed "s/${VM_NODE_PREFIX}//" | sort -n | tail -1)
+# Trova tutti i numeri dei nodi esistenti
+existing_nodes=$(multipass list | grep ${VM_NODE_PREFIX} | awk '{print $1}' | sed "s/${VM_NODE_PREFIX}//" | sort -n)
 
-# Avvia una nuova istanza incrementando il numero massimo
-if [ -z "$max_node_num" ]; then
+# Trova il primo numero disponibile
+available_num=1
+for num in $existing_nodes; do
+    if [ "$num" -eq "$available_num" ]; then
+        ((available_num++))
+    else
+        break
+    fi
+done
+
+# Se non ci sono numeri disponibili, incrementa il numero massimo
+if [ -z "$existing_nodes" ]; then
     counter=1
 else
-    ((counter=max_node_num+1))
+    max_node_num=$(echo "$existing_nodes" | tail -1)
+    if [ "$available_num" -le "$max_node_num" ]; then
+        counter=$available_num
+    else
+        ((counter=max_node_num+1))
+    fi
 fi
 
 mount_host_dir $VM_MAIN_NAME

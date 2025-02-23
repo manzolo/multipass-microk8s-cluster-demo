@@ -36,18 +36,23 @@ cluster_management() {
                 ./destroy_kube_vms.sh && msg_info "Cluster destruction done." || msg_error "Error during cluster destruction."; press_any_key; echo
                 ;;
             "Start Cluster")
-                ./cmd/start_cluster.sh && msg_info "Cluster startup done." || msg_error "Error during cluster startup."; press_any_key; echo
-                ;;
+                ./cmd/start_cluster.sh && msg_info "Cluster startup done." || msg_error "Error during cluster startup."
+                sleep 5
+                restart_microk8s_nodes
+            ;;
             "Shell on ${VM_MAIN_NAME}")
                 multipass shell "${VM_MAIN_NAME}" && msg_info "Shell ${VM_MAIN_NAME} OK." || msg_error "Error shell ${VM_MAIN_NAME}."
                 press_any_key
                 echo
                 ;;
             "Stop Cluster")
-                ./cmd/stop_cluster.sh && msg_info "Cluster shutdown done." || msg_error "Error during cluster shutdown."; press_any_key; echo
+                ./cmd/stop_cluster.sh && msg_info "Cluster shutdown done." || msg_error "Error during cluster shutdown.";
                 ;;
             "Add Cluster Node")
-                ./cmd/add_node.sh && msg_info "Node addition done." || msg_error "Error during node addition."; press_any_key; echo
+                ./cmd/add_node.sh && msg_info "Node addition done." || msg_error "Error during node addition."
+                sleep 5
+                restart_microk8s_nodes
+                show_cluster_info
                 ;;
             "Remove Cluster Node")
                 NODE_NAME=$(whiptail --inputbox "Enter the instance name of the node to remove (e.g., k8s-node3):" 8 50 --title "Node Name" 3>&1 1>&2 2>&3)
@@ -60,7 +65,7 @@ cluster_management() {
                 fi
                 ;;
             "Show Cluster")
-                ./script/__show_cluster.sh || echo "Error showing cluster information."
+                show_cluster_info
                 press_any_key
                 echo
                 ;;

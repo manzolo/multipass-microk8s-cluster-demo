@@ -29,11 +29,15 @@ source $(dirname $0)/script/__create_main_vm.sh
 # Install and configure microk8s
 source $(dirname $0)/script/__setup_main_vm.sh
 
-# Create worker nodes
-source $(dirname $0)/script/__create_worker_nodes.sh
+# Create worker node VMs
+for ((counter=1; counter<=instances; counter++)); do
+    # Install and configure microk8s
+    $(dirname $0)/cmd/add_node.sh
+done
 
-# Configure worker nodes
-source $(dirname $0)/script/__configure_worker_nodes.sh
+restart_microk8s_nodes
+
+sleep 5
 
 # Complete microk8s setup
 source $(dirname $0)/script/__complete_microk8s_setup.sh
@@ -43,7 +47,8 @@ source $(dirname $0)/script/__unmount_directories.sh
 
 # Display cluster info and test services
 source $(dirname $0)/script/__display_cluster_info.sh
-source $(dirname $0)/script/__show_cluster.sh
+
+show_cluster_info
 
 # End Time
 end_time=$(date +"%d/%m/%Y %H:%M:%S")

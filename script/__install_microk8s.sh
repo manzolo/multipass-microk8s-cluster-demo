@@ -46,7 +46,6 @@ then
 
     #sudo chown -f -R ubuntu ~/.kube
     #newgrp microk8s
-    #sudo microk8s status --wait-ready  > /dev/null 2>&1
 
     #(cd ~/.kube && sudo microk8s config > config) & disown
     #sudo ufw allow in on cni0 && sudo ufw allow out on cni0
@@ -63,6 +62,7 @@ then
     microk8s enable dns
     microk8s enable dashboard
     microk8s enable helm
+    msg_warn "Waiting for microk8s to be ready on ${VM_MAIN_NAME}..."
     sudo microk8s status --wait-ready > /dev/null 2>&1
     #sudo cp config/hosts /etc/hosts
     ##sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh

@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-HOST_DIR_NAME=${PWD}
+HOST_DIR_NAME=$(pwd)
 
 # Include functions (assuming this is defined elsewhere)
-source $(dirname $0)/../script/__functions.sh
+source "$(dirname "$0")/../script/__functions.sh"
 
 # Load default values and environment variables
-source $(dirname $0)/../script/__load_env.sh
+source "$(dirname "$0")/../script/__load_env.sh"
 
 # Function to create a VM and run commands
 create_and_configure_vm() {
@@ -19,21 +19,33 @@ create_and_configure_vm() {
     msg_warn "Creating and configuring VM: $vm_name"
 
     # Create the VM
-    if ! multipass launch "22.04" -m $ram -d $hdd -c $cpu -n $vm_name; then
+    if ! multipass launch "22.04" -m "$ram" -d "$hdd" -c "$cpu" -n "$vm_name"; then
         msg_error "Failed to create VM: $vm_name"
         exit 1
     fi
 
-    add_machine_to_dns $vm_name
+    add_machine_to_dns "$vm_name"
+    configure_dns_resolution "$vm_name"
+    install_docker "$vm_name"
+    start_rancher "$vm_name"
+    show_rancher_info "$vm_name"
+    add_motd_rancher "$vm_name"
+}
 
-    DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
-    multipass exec "${vm_name}" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
+# Function to configure DNS resolution
+configure_dns_resolution() {
+    local vm_name=$1
+    local DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+    multipass exec "$vm_name" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
 nameserver '"$DNS_IP"'
 EOF'
+}
 
-    # --- Install Docker ---
+# Function to install Docker
+install_docker() {
+    local vm_name=$1
     msg_info "Installing Docker on $vm_name..."
-    if ! multipass shell $vm_name  > /dev/null 2>&1 <<EOF
+    if ! multipass shell "$vm_name" > /dev/null 2>&1 <<EOF
 #!/bin/bash
 set -e
 
@@ -67,11 +79,12 @@ EOF
         msg_error "Failed to enable Docker on $vm_name."
         exit 1
     fi
+}
 
-    # --- Start Rancher with Docker Compose ---
+# Function to start Rancher
+start_rancher() {
+    local vm_name=$1
     msg_info "Starting Rancher on $vm_name using Docker Compose..."
-
-    # Create docker-compose.yml file in the VM
     multipass exec "$vm_name" -- bash -c 'cat > docker-compose.yml <<EOF
 services:
   rancher:
@@ -89,68 +102,23 @@ volumes:
   rancher_data:
 EOF'
 
-    # Run docker-compose
     if ! multipass exec "$vm_name" -- docker compose up -d; then
         msg_error "Failed to start Rancher on $vm_name using Docker Compose."
         exit 1
     fi
-
-    multipass info $vm_name
-    echo "Rancher installation completed." # Indicate success within the VM
 }
 
-# Create and configure the Rancher VM with a single function call
-create_and_configure_vm "${RANCHER_HOSTNAME}" "4Gb" "20Gb" "2"
+# Function to show Rancher info
+show_rancher_info() {
+    local vm_name=$1
+    multipass info "$vm_name"
+    echo "Rancher installation completed."
+}
 
-# Get the IP address of the VM
-VM_IP=$(multipass info ${RANCHER_HOSTNAME} | grep IPv4 | awk '{print $2}')
-
-msg_warn "Please wait while Rancher starts up, then navigate to:"
-msg_info "https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}"
-
-msg_info "Show access password to rancher first login"
-msg_warn "multipass exec ${RANCHER_HOSTNAME} -- docker logs rancher 2>&1 | grep \"Bootstrap Password:\""
-
-echo
-
-msg_info "Show rancher logs"
-msg_warn "multipass exec ${RANCHER_HOSTNAME} -- docker logs rancher -f"
-
-echo
-
-msg_warn "Waiting rancher start..."
-
-echo
-
-# Wait for the bootstrap password to appear
-timeout_seconds=300  # Timeout di 5 minuti
-start_time=$(date +%s)
-
-set +e  # Disabilita set -e temporaneamente
-
-while true; do
-  elapsed_time=$(( $(date +%s) - start_time ))
-  if [[ "$elapsed_time" -gt "$timeout_seconds" ]]; then
-    msg_error "Timeout: Bootstrap password not found within $timeout_seconds seconds."
-    exit 1
-  fi
-
-  PASSWORD=$(multipass exec ${RANCHER_HOSTNAME} -- docker logs rancher 2>&1 | grep "Bootstrap Password:" | awk '{print $NF}')
-  if [[ -n "$PASSWORD" ]]; then
-    #msg_warn "$PASSWORD"
-    RANCHER_URL="https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=$PASSWORD"
-    
-    # Mostra il link all'utente
-    msg_info "Use the following link to complete the Rancher setup:"
-    msg_warn "$RANCHER_URL"
-    break  # Esci dal ciclo quando la password viene trovata
-  fi
-
-  sleep 5  # Aspetta 5 secondi prima di riprovare
-done
-
-# MOTD generation with color codes
-MOTD_COMMANDS=$(cat <<EOF
+# Function to add MOTD for Rancher
+add_motd_rancher() {
+    local vm_name=$1
+    local MOTD_COMMANDS=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
 $(tput setaf 6)$(tput bold)  Rancher Management Commands
 $(tput setaf 6)$(tput bold)================================================
@@ -163,7 +131,7 @@ $(tput setaf 6)$(tput bold)👀 Check Rancher logs:$(tput sgr0)
 $(tput setaf 6)docker logs rancher -f $(tput sgr0)
 
 $(tput setaf 5)$(tput bold)🔑 Show rancher bootstrap password:$(tput sgr0)
-$(tput setaf 5)docker logs rancher 2>&1 | grep \"Bootstrap Password:\"$(tput sgr0)
+$(tput setaf 5)docker logs rancher 2>&1 | grep "Bootstrap Password:"$(tput sgr0)
 
 Rancher homepage:
 https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}
@@ -171,112 +139,45 @@ https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}
 Use the following link to complete the Rancher setup:
 https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=BOOTSTRAP_PASSWORD_HERE
 EOF
-)
+    )
 
-msg_warn "Add ${RANCHER_HOSTNAME} MOTD"
-multipass exec ${RANCHER_HOSTNAME} -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
+    msg_warn "Add ${vm_name} MOTD"
+    multipass exec "$vm_name" -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
 echo ""
-echo "Commands to run on ${RANCHER_HOSTNAME}:"
+echo "Commands to run on ${vm_name}:"
 echo "$MOTD_COMMANDS"
 EOF
+}
 
+# Function to wait for Rancher bootstrap password
+wait_for_rancher_password() {
+    msg_warn "Waiting rancher start..."
+    local timeout_seconds=300
+    local start_time=$(date +%s)
+
+    set +e
+
+    while true; do
+        local elapsed_time=$(( $(date +%s) - start_time ))
+        if [[ "$elapsed_time" -gt "$timeout_seconds" ]]; then
+            msg_error "Timeout: Bootstrap password not found within $timeout_seconds seconds."
+            exit 1
+        fi
+
+        local PASSWORD=$(multipass exec "${RANCHER_HOSTNAME}" -- docker logs rancher 2>&1 | grep "Bootstrap Password:" | awk '{print $NF}')
+        if [[ -n "$PASSWORD" ]]; then
+            local RANCHER_URL="https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=$PASSWORD"
+            msg_info "Use the following link to complete the Rancher setup:"
+            msg_warn "$RANCHER_URL"
+            break
+        fi
+
+        sleep 5
+    done
+    set -e
+}
+
+# Main script execution
+create_and_configure_vm "${RANCHER_HOSTNAME}" "4Gb" "20Gb" "2"
+wait_for_rancher_password
 press_any_key
-echo
-
-#set -e  # Riabilita set -e
-
-# # --- Update /etc/hosts ---
-# update_hosts_host() {
-#     msg_info "Updating /etc/hosts on the host machine..."
-#     if grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts; then
-#         if sudo sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/$VM_IP/" /etc/hosts; then
-#             msg_info "Updated /etc/hosts. Backup created as /etc/hosts.bak."
-#         else
-#             msg_error "Error updating /etc/hosts on the host machine."
-#         fi
-#     else
-#         if echo "$VM_IP ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" | sudo tee -a /etc/hosts; then
-#             msg_info "Added entry to /etc/hosts on the host machine."
-#         else
-#             msg_error "Error adding entry to /etc/hosts on the host machine."
-#         fi
-#     fi
-# }
-
-## Update /etc/hosts on the Kubernetes VMs (in parallel)
-#multipass list | while read -r line; do
-#    if [[ "$line" == *"k8s-"* ]]; then
-#        node=$(echo "$line" | awk '{print $1}')
-#        node=$(echo "$node" | tr -d '[:space:]')
-#
-#        echo "Updating /etc/hosts on $node (in background)..."
-#
-#        # Create a temporary file for the output of this VM
-#        output_file=$(mktemp)
-#
-#        # Run update_hosts_vms in the background, redirecting output
-#        update_hosts_vms "$node" > "$output_file" 2>&1 & # Redirect stdout and stderr
-#        pids+=($!)
-#        output_files+=("$output_file") # Store the output file name
-#
-#    fi
-#done
-
-## Wait for all background processes to finish and display output
-#for i in "${!pids[@]}"; do  # Iterate through the indices of the pids array
-#    pid=${pids[$i]}
-#    wait "$pid"
-#    if [[ $? -ne 0 ]]; then
-#        msg_error "An error occurred while updating /etc/hosts on one or more VMs."
-#        exit 1
-#    fi
-#
-#    # Display the output from the VM in the correct order
-#    echo "-------------------- Output for $node --------------------"
-#    cat "${output_files[$i]}"
-#    rm "${output_files[$i]}" # Clean up the temporary file
-#done
-
-
-# # Ask the user if they want to update /etc/hosts on the host machine
-# while true; do
-#     read -r -p "Update /etc/hosts on the host machine? (y/n): " choice_hosts
-#     case "$choice_hosts" in
-#         y|Y)
-#             break
-#             ;;
-#         n|N)
-#             echo "Skipping /etc/hosts update on the host machine."
-#             break
-#             ;;
-#         *)
-#             echo "Invalid input. Please enter 'y' or 'n'."
-#             ;;
-#     esac
-# done
-
-# if [[ "$choice_hosts" == "y" || "$choice_hosts" == "Y" ]]; then
-#     update_hosts_host  # Update the host's /etc/hosts
-# fi
-
-
-# update_hosts_vms() {
-#     local vm_name=$1
-#     local vm_status=$(multipass info "$vm_name" --format csv | tail -1 | cut -d, -f2)
-
-#     echo "Inside update_hosts_vms for: $vm_name"  # Debugging: Show which VM
-
-#     if [[ "$vm_status" != "Running" ]]; then
-#         msg_warn "La VM $vm_name non è attiva. Saltando..."
-#         return
-#     fi
-#     echo "VM $vm_name is running" # Debugging
-
-#     msg_info "Update /etc/hosts on $vm_name..."
-
-#     # Use the Rancher VM's IP ($VM_IP) for ALL Kubernetes nodes
-#     multipass exec $vm_name -- sudo bash -c 'grep -q "${RANCHER_HOSTNAME}.${DNS_SUFFIX}" /etc/hosts && sed -i.bak -E "/${RANCHER_HOSTNAME}.${DNS_SUFFIX}/ s/^[0-9.]+/'"$VM_IP"'/" /etc/hosts || echo "'"$VM_IP"' ${RANCHER_HOSTNAME}.${DNS_SUFFIX}" >> /etc/hosts'
-
-#     msg_info "/etc/hosts contents on $vm_name:"
-#     multipass exec "$vm_name" -- cat /etc/hosts
-# }

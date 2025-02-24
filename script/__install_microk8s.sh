@@ -59,15 +59,17 @@ then
     # add kubect as alias
     sudo snap alias microk8s.kubectl kubectl
     sudo snap alias microk8s.kubectl k
-    microk8s enable dns
-    microk8s enable dashboard
-    microk8s enable helm
+    #microk8s enable dns
+    #microk8s enable dashboard
+    #microk8s enable helm
     msg_warn "Waiting for microk8s to be ready on ${VM_MAIN_NAME}..."
     sudo microk8s status --wait-ready > /dev/null 2>&1
     #sudo cp config/hosts /etc/hosts
     ##sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
     ##sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'
 else 
+    sudo usermod -a -G microk8s ubuntu
+
     #sudo cp config/hosts /etc/hosts
     #microk8s enable dns
     MAX_RETRIES=3  # Numero massimo di tentativi
@@ -95,7 +97,7 @@ else
             msg_warn "Cluster join failed."
         fi
     done
-
+    
     # Rimuovi il file dopo l'esecuzione (indipendentemente dal successo o fallimento)
     rm -rf script/_join_node.sh
 fi

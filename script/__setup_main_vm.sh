@@ -1,10 +1,11 @@
 #!/bin/bash
 
+# Copia il file sulla VM
 msg_info "=== Task 1: ${VM_MAIN_NAME} Setup ==="
+multipass transfer script/__install_microk8s.sh $VM_MAIN_NAME:/home/ubuntu/install_microk8s.sh
+# Esegui lo script
+multipass exec $VM_MAIN_NAME -- /home/ubuntu/install_microk8s.sh
 
-mount_host_dir $VM_MAIN_NAME
-run_command_on_node $VM_MAIN_NAME "script/__install_microk8s.sh"
-unmount_host_dir $VM_MAIN_NAME
+multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/install_microk8s.sh
 
 multipass stop $VM_MAIN_NAME
-

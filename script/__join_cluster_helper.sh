@@ -16,7 +16,7 @@ rm -rf script/_join_node.sh
 
 # Get the join command and replace the IP address and port with the cluster name
 #JOINCMD=$(sudo microk8s add-node | sed '/microk8s/p' | sed '3!d' | sed -r 's|microk8s join (\b[0-9]{1,3}\.){3}[0-9]{1,3}\b:|microk8s join ${VM_MAIN_NAME}.loc:|')
-JOINCMD=$(sudo microk8s add-node | sed '/microk8s/p' | sed '3!d')
+JOINCMD=$(microk8s add-node | sed '/microk8s/p' | sed '3!d')
 
 # Add the flag for the node type
 JOINCMD+=" --${NODE_TYPE}"

@@ -16,7 +16,7 @@ $(tput setaf 6)$(tput bold)================================================
 $(tput sgr0)
 
 $(tput setaf 2)$(tput bold)🚀 Apply new configuration:$(tput sgr0)
-$(tput setaf 2)kubectl apply -f config/demo-go.yaml$(tput sgr0)
+$(tput setaf 2)kubectl apply -f microk8s_demo_config/demo-go.yaml$(tput sgr0)
 
 $(tput setaf 3)$(tput bold)📈 Scale up to 20 demo-go pods:$(tput sgr0)
 $(tput setaf 3)kubectl scale deployment demo-go --replicas=20 -n demo-go$(tput sgr0)
@@ -95,8 +95,8 @@ chmod +x "$temp_file"
 
 echo
 
-multipass transfer -r ./config ${VM_MAIN_NAME}:/home/ubuntu/
-multipass exec ${VM_MAIN_NAME} -- rm config/*.template
+#multipass transfer -r ./config ${VM_MAIN_NAME}:/home/ubuntu/
+multipass exec ${VM_MAIN_NAME} -- rm microk8s_demo_config/*.template
 
 msg_warn "Testing PHP service:"
 msg_info "http://$IP:$NODEPORT_PHP"

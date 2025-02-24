@@ -101,6 +101,34 @@ function clone_vm() {
     multipass start "$vm_dst"
 }
 
+# Function to transfer host directory
+transfer_host_dir() {
+    local vm_name=$1
+
+    msg_warn "Tranfering host directory to $vm_name"
+    
+    if ! multipass transfer -r ${HOST_DIR_NAME}/cmd $vm_name:/home/ubuntu/; then
+        msg_error "Failed to transfer directory to $vm_name"
+        exit 1
+    fi
+    if ! multipass transfer -r ${HOST_DIR_NAME}/config $vm_name:/home/ubuntu/; then
+        msg_error "Failed to transfer directory to $vm_name"
+        exit 1
+    fi
+    if ! multipass transfer -r ${HOST_DIR_NAME}/script $vm_name:/home/ubuntu/; then
+        msg_error "Failed to transfer directory to $vm_name"
+        exit 1
+    fi
+    if ! multipass transfer ${HOST_DIR_NAME}/.env $vm_name:/home/ubuntu/; then
+        msg_error "Failed to transfer directory to $vm_name"
+        exit 1
+    fi
+    if ! multipass transfer ${HOST_DIR_NAME}/*.sh $vm_name:/home/ubuntu/; then
+        msg_error "Failed to transfer directory to $vm_name"
+        exit 1
+    fi
+}
+
 # Function to mount host directory
 mount_host_dir() {
     local vm_name=$1

@@ -13,10 +13,20 @@ multipass purge > /dev/null 2>&1
 remove_machine_from_dns $LOAD_BALANCE_HOSTNAME
 remove_machine_from_dns demo-go
 remove_machine_from_dns demo-php
+remove_machine_from_dns static-site
+
 
 # msg_warn "Remove $LOAD_BALANCE_HOSTNAME from /etc/hosts"
 
 # sudo sed -i -E "/$LOAD_BALANCE_HOSTNAME/d" /etc/hosts
 
-read -n 1 -s -r -p "Press any key to continue..."
-echo
+# Ottieni il PID del processo padre
+PARENT_PID=$(ps -o ppid= -p $$)
+
+# Ottieni il nome del processo padre
+PARENT_NAME=$(ps -o comm= -p $PARENT_PID)
+
+# Verifica se il processo padre è menu.sh
+if [[ "$PARENT_NAME" != "menu.sh" ]]; then
+    press_any_key
+fi

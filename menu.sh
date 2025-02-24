@@ -22,6 +22,7 @@ cluster_management() {
         "Shell on ${VM_MAIN_NAME}" "Shell on ${VM_MAIN_NAME}"
         "Add Cluster Node" "Add a node to the Kubernetes cluster"
         "Remove Cluster Node" "Remove a node from the Kubernetes cluster"
+        "Show Cluster" "Show Cluster information"
         "Destroy Cluster" "Destroy the Kubernetes cluster"
         "Back" "Return to main menu"
     )
@@ -29,31 +30,46 @@ cluster_management() {
         choice=$(display_menu "Cluster Management" options[@])
         case "$choice" in
             "Create Cluster")
-                ./create_kube_vms.sh && echo "Cluster creation done." || echo "Error during cluster creation."
+                ./create_kube_vms.sh && msg_info "Cluster creation done." || msg_error "Error during cluster creation."; press_any_key; echo
                 ;;
             "Destroy Cluster")
-                ./destroy_kube_vms.sh && echo "Cluster destruction done." || echo "Error during cluster destruction."
+                ./destroy_kube_vms.sh && msg_info "Cluster destruction done." || msg_error "Error during cluster destruction."; press_any_key; echo
                 ;;
             "Start Cluster")
-                ./cmd/start_cluster.sh && echo "Cluster startup done." || echo "Error during cluster startup."
-                ;;
+                ./cmd/start_cluster.sh && msg_info "Cluster startup done." || msg_error "Error during cluster startup."
+                sleep 5
+                restart_microk8s_nodes
+            ;;
             "Shell on ${VM_MAIN_NAME}")
-                multipass shell "${VM_MAIN_NAME}" && echo "Shell ${VM_MAIN_NAME} OK." || echo "Error shell ${VM_MAIN_NAME}."
+                multipass shell "${VM_MAIN_NAME}" && msg_info "Shell ${VM_MAIN_NAME} OK." || msg_error "Error shell ${VM_MAIN_NAME}."
+                press_any_key
+                echo
                 ;;
             "Stop Cluster")
-                ./cmd/stop_cluster.sh && echo "Cluster shutdown done." || echo "Error during cluster shutdown."
+                ./cmd/stop_cluster.sh && msg_info "Cluster shutdown done." || msg_error "Error during cluster shutdown.";
                 ;;
             "Add Cluster Node")
-                ./cmd/add_node.sh && echo "Node addition done." || echo "Error during node addition."
+                ./cmd/add_node.sh && msg_info "Node addition done." || msg_error "Error during node addition."
+                sleep 5
+                restart_microk8s_nodes
+                show_cluster_info
                 ;;
             "Remove Cluster Node")
                 NODE_NAME=$(whiptail --inputbox "Enter the instance name of the node to remove (e.g., k8s-node3):" 8 50 --title "Node Name" 3>&1 1>&2 2>&3)
                 if [ $? -eq 0 ]; then
-                    ./cmd/remove_node.sh "$NODE_NAME" && echo "Node removal done." || echo "Error during node removal."
+                    ./cmd/remove_node.sh "$NODE_NAME" && msg_info "Node removal done." || msg_error "Error during node removal."
                 else
                     echo "Node removal cancelled."
+                    press_any_key
+                    echo
                 fi
                 ;;
+            "Show Cluster")
+                show_cluster_info
+                press_any_key
+                echo
+                ;;
+                
             "Back")
                 break
                 ;;
@@ -68,9 +84,9 @@ cluster_management() {
 load_balancer_management() {
     local options=(
         "Create Nginx Load Balancer" "Create Nginx load balancer"
-        "Destroy Nginx Load Balancer" "Destroy Nginx load balancer"
         "Start Nginx Load Balancer" "Start Nginx load balancer"
         "Stop Nginx Load Balancer" "Stop Nginx load balancer"
+        "Destroy Nginx Load Balancer" "Destroy Nginx load balancer"
         "Shell on ${LOAD_BALANCE_HOSTNAME}" "Shell on ${LOAD_BALANCE_HOSTNAME}"
         "Back" "Return to main menu"
     )
@@ -78,19 +94,23 @@ load_balancer_management() {
         choice=$(display_menu "Load Balancer Management" options[@])
         case "$choice" in
             "Create Nginx Load Balancer")
-                ./cmd/create_nginx_lb.sh && echo "Nginx LB creation done." || echo "Error during Nginx LB creation."
+                ./cmd/create_nginx_lb.sh && msg_info "Nginx LB creation done." || msg_error "Error during Nginx LB creation."; press_any_key; echo
                 ;;
             "Destroy Nginx Load Balancer")
-                ./cmd/destroy_nginx_lb.sh && echo "Nginx LB destruction done." || echo "Error during Nginx LB destruction."
+                ./cmd/destroy_nginx_lb.sh && msg_info "Nginx LB destruction done." || msg_error "Error during Nginx LB destruction."; press_any_key; echo
                 ;;
             "Start Nginx Load Balancer")
-                multipass start "${LOAD_BALANCE_HOSTNAME}" && echo "Nginx LB startup done." || echo "Error starting Nginx LB."
+                multipass start "${LOAD_BALANCE_HOSTNAME}" && msg_info "Nginx LB startup done." || msg_error "Error starting Nginx LB."; press_any_key; echo
                 ;;
             "Stop Nginx Load Balancer")
-                multipass stop "${LOAD_BALANCE_HOSTNAME}" && echo "Nginx LB shutdown done." || echo "Error stopping Nginx LB."
+                multipass stop "${LOAD_BALANCE_HOSTNAME}" && msg_info "Nginx LB shutdown done." || msg_error "Error stopping Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Shell on ${LOAD_BALANCE_HOSTNAME}")
-                multipass shell "${LOAD_BALANCE_HOSTNAME}" && echo "Shell Nginx LB OK." || echo "Error shell Nginx LB."
+                multipass shell "${LOAD_BALANCE_HOSTNAME}" && msg_info "Shell Nginx LB OK." || msg_error "Error shell Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Back")
                 break
@@ -116,19 +136,25 @@ rancher_management() {
         choice=$(display_menu "Rancher Management" options[@])
         case "$choice" in
             "Create Rancher")
-                ./cmd/create_rancher.sh && echo "Rancher creation done." || echo "Error during Rancher creation."
+                ./cmd/create_rancher.sh && msg_info "Rancher creation done." || msg_error "Error during Rancher creation."; press_any_key; echo
                 ;;
             "Destroy Rancher")
-                ./cmd/destroy_rancher.sh && echo "Rancher destruction done." || echo "Error during Rancher destruction."
+                ./cmd/destroy_rancher.sh && msg_info "Rancher destruction done." || msg_error "Error during Rancher destruction."; press_any_key; echo
                 ;;
             "Start Rancher")
-                multipass start "${RANCHER_HOSTNAME}" && echo "Rancher startup done." || echo "Error starting Rancher."
+                multipass start "${RANCHER_HOSTNAME}" && msg_info "Rancher startup done." || msg_error "Error starting Rancher."
+                press_any_key
+                echo
                 ;;
             "Stop Rancher")
-                multipass stop "${RANCHER_HOSTNAME}" && echo "Rancher shutdown done." || echo "Error stopping Rancher."
+                multipass stop "${RANCHER_HOSTNAME}" && msg_info "Rancher shutdown done." || msg_error "Error stopping Rancher."
+                press_any_key
+                echo
                 ;;
             "Shell on ${RANCHER_HOSTNAME}")
-                multipass shell "${RANCHER_HOSTNAME}" && echo "Rancher shell OK." || echo "Error shell Rancher."
+                multipass shell "${RANCHER_HOSTNAME}" && msg_info "Rancher shell OK." || msg_error "Error shell Rancher."
+                press_any_key
+                echo
                 ;;
             "Back")
                 break
@@ -156,6 +182,7 @@ dns_management() {
             "Add DNS Configuration")
                 echo "Adding DNS configuration..."
                 ./cmd/add_dns_to_host.sh
+
                 ;;
             "Remove DNS Configuration")
                 echo "Removing DNS configuration..."
@@ -163,14 +190,20 @@ dns_management() {
                 ;;
             "Start DNS server")
                 echo "Start local DNS server..."
-                multipass start "${DNS_VM_NAME}" && echo "DNS server startup done." || echo "Error starting Nginx LB."
+                multipass start "${DNS_VM_NAME}" && msg_info "DNS server startup done." || msg_error "Error starting Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Stop DNS server")
                 echo "Stop local DNS server..."
-                multipass stop "${DNS_VM_NAME}" && echo "DNS server shutdown done." || echo "Error stopping Nginx LB."
+                multipass stop "${DNS_VM_NAME}" && msg_info "DNS server shutdown done." || msg_error "Error stopping Nginx LB."
+                press_any_key
+                echo
                 ;;
             "Shell on ${DNS_VM_NAME}")
-                multipass shell "${DNS_VM_NAME}" && echo "DNS server shell OK." || echo "Error DNS server shell."
+                multipass shell "${DNS_VM_NAME}" && msg_info "DNS server shell OK." || msg_error "Error DNS server shell."
+                press_any_key
+                echo
                 ;;
             "Back")
                 break
@@ -209,15 +242,16 @@ main_menu() {
                 ;;
             "Uninstall All")
                 if whiptail --yesno "Are you sure you want to uninstall everything? This will destroy the Kubernetes cluster, Nginx LB, and Rancher." 10 60; then
-                    ./destroy_kube_vms.sh && echo "Kubernetes cluster destruction done." || echo "Error during Kubernetes cluster destruction."
-                    ./cmd/destroy_nginx_lb.sh && echo "Nginx LB destruction done." || echo "Error during Nginx LB destruction."
-                    ./cmd/destroy_rancher.sh && echo "Rancher destruction done." || echo "Error during Rancher destruction."
+                    ./destroy_kube_vms.sh && msg_info "Kubernetes cluster destruction done." || msg_error "Error during Kubernetes cluster destruction."
+                    ./cmd/destroy_nginx_lb.sh && msg_info "Nginx LB destruction done." || msg_error "Error during Nginx LB destruction."
+                    ./cmd/destroy_rancher.sh && msg_info "Rancher destruction done." || msg_error "Error during Rancher destruction."
+                    press_any_key
                 else
                     echo "Uninstall All cancelled."
                 fi
                 ;;
             "Exit")
-                echo "Exiting..."
+                #echo "Exiting..."
                 break
                 ;;
             *)

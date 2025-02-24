@@ -36,11 +36,24 @@ $(tput setaf 7)kubectl get all -o wide -n demo-php$(tput sgr0)
 $(tput setaf 8)$(tput bold)👀 Show demo-go pods:$(tput sgr0)
 $(tput setaf 8)kubectl get all -o wide -n demo-go$(tput sgr0)
 
-$(tput setaf 1)$(tput bold)🔑 Get MicroK8s Dashboard Token:$(tput sgr0)
-$(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token$(tput sgr0)
-
 $(tput setaf 9)$(tput bold)🖥️ Show node details:$(tput sgr0)
 $(tput setaf 9)kubectl get node$(tput sgr0)
+
+$(tput setaf 6)$(tput bold)================================================
+$(tput setaf 6)$(tput bold)  Microk8s Dashboard
+$(tput setaf 6)$(tput bold)================================================
+$(tput sgr0)
+$(tput setaf 9)$(tput bold)🖥️ Enable dashboard:$(tput sgr0)
+$(tput setaf 8)microk8s enable community$(tput sgr0)
+$(tput setaf 8)microk8s enable dashboard-ingress --hostname ${VM_MAIN_NAME}.${DNS_SUFFIX} --allow 0.0.0.0/0$(tput sgr0)
+
+$(tput setaf 1)$(tput bold)🔑 Show MicroK8s Dashboard Token:$(tput sgr0)
+$(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token | grep "token:" | awk '{print \$'2'}'$(tput sgr0)
+
+$(tput setaf 2)$(tput bold)🚀 Start dashboard:$(tput sgr0)
+$(tput setaf 8)microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443 --address 0.0.0.0$(tput sgr0)
+
+$(tput setaf 5)https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login$(tput sgr0)
 
 $(tput sgr0)
 EOF
@@ -53,13 +66,13 @@ echo "Commands to run on ${VM_MAIN_NAME}:"
 echo "$MOTD_COMMANDS"
 EOF
 
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=10 -n demo-go"
-multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=10 -n demo-go
+msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=6 -n demo-go"
+multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=6 -n demo-go
 
 multipass exec ${VM_MAIN_NAME} -- kubectl rollout status deployment/demo-go -n demo-go
 
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=10 -n demo-php"
-multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=10 -n demo-php
+msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=6 -n demo-php"
+multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=6 -n demo-php
 multipass exec ${VM_MAIN_NAME} -- kubectl rollout status deployment/demo-php -n demo-php
 
 msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-go"
@@ -81,6 +94,9 @@ chmod +x "$temp_file"
 "$temp_file"
 
 echo
+
+multipass transfer -r ./config ${VM_MAIN_NAME}:/home/ubuntu/
+multipass exec ${VM_MAIN_NAME} -- rm config/*.template
 
 msg_warn "Testing PHP service:"
 msg_info "http://$IP:$NODEPORT_PHP"

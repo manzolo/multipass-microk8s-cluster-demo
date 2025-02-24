@@ -22,5 +22,5 @@ else
     msg_error "$CONF_FILE not found."
 fi
 
-read -n 1 -s -r -p "Press any key to continue..."
+press_any_key
 echo

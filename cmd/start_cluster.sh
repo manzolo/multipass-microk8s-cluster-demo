@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 HOST_DIR_NAME=${PWD}
 
 #Include functions
@@ -22,4 +24,4 @@ for ((counter=1; counter<=instances; counter++)); do
 done
 
 msg_info "All VMs started."
-multipass list
+show_cluster_info

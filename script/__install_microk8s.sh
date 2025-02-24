@@ -46,7 +46,6 @@ then
 
     #sudo chown -f -R ubuntu ~/.kube
     #newgrp microk8s
-    #sudo microk8s status --wait-ready  > /dev/null 2>&1
 
     #(cd ~/.kube && sudo microk8s config > config) & disown
     #sudo ufw allow in on cni0 && sudo ufw allow out on cni0
@@ -63,6 +62,7 @@ then
     microk8s enable dns
     microk8s enable dashboard
     microk8s enable helm
+    msg_warn "Waiting for microk8s to be ready on ${VM_MAIN_NAME}..."
     sudo microk8s status --wait-ready > /dev/null 2>&1
     #sudo cp config/hosts /etc/hosts
     ##sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
@@ -70,11 +70,32 @@ then
 else 
     #sudo cp config/hosts /etc/hosts
     #microk8s enable dns
-    script/_join_node.sh &
-    BACK_PID=$!
-    while kill -0 $BACK_PID > /dev/null 2>&1 /dev/null ; do
-        msg_warn "Still trying to join..."
-        sleep 10
+    MAX_RETRIES=3  # Numero massimo di tentativi
+    RETRY_DELAY=10 # Tempo di attesa tra i tentativi (in secondi)
+    SUCCESS=0      # Flag per indicare il successo
+
+    for (( attempt=1; attempt<=MAX_RETRIES; attempt++ )); do
+        #msg_warn "Tentativo $attempt di eseguire script/_join_node.sh..."
+
+        # Esegui lo script in background
+        script/_join_node.sh &
+        BACK_PID=$!
+
+        # Attendi il completamento dello script
+        while kill -0 $BACK_PID > /dev/null 2>&1; do
+            msg_warn "Still trying to join..."
+            sleep $RETRY_DELAY
+        done
+
+        # Controlla se lo script è terminato con successo
+        if wait $BACK_PID; then
+            SUCCESS=1
+            break
+        else
+            msg_warn "Cluster join failed."
+        fi
     done
+
+    # Rimuovi il file dopo l'esecuzione (indipendentemente dal successo o fallimento)
     rm -rf script/_join_node.sh
 fi

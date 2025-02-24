@@ -35,14 +35,19 @@ wait_for_microk8s_ready "$VM_MAIN_NAME"
 
 sleep 5
 
-rm -rf ./_join_node.sh
 msg_warn "Generating join cluster command for ${VM_MAIN_NAME}"
-mount_host_dir $VM_MAIN_NAME
-run_command_on_node $VM_MAIN_NAME "script/__join_cluster_helper.sh"
+multipass transfer script/__join_cluster_helper.sh $VM_MAIN_NAME:/home/ubuntu/join_cluster_helper.sh
+multipass transfer script/__rollout_pods.sh $VM_MAIN_NAME:/home/ubuntu/rollout_pods.sh
+
+# Esegui lo script per creare il join al cluster
+CLUSTER_JOIN_COMMAND=$(multipass exec $VM_MAIN_NAME -- "/home/ubuntu/join_cluster_helper.sh")
+multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/join_cluster_helper.sh
 
 msg_warn "Installing microk8s on ${VM_NODE_PREFIX}$current_counter"
-mount_host_dir "${VM_NODE_PREFIX}$current_counter"
+#tranfer_host_dir "${VM_NODE_PREFIX}$current_counter"
+#echo "Join command: ${CLUSTER_JOIN_COMMAND}"
+multipass exec ${VM_NODE_PREFIX}$current_counter -- $CLUSTER_JOIN_COMMAND
 
-run_command_on_node "${VM_NODE_PREFIX}$current_counter" "script/__install_microk8s.sh"
-unmount_host_dir ${VM_MAIN_NAME}
-unmount_host_dir ${VM_NODE_PREFIX}$current_counter
+#run_command_on_node "${VM_NODE_PREFIX}$current_counter" "script/__install_microk8s.sh"
+#unmount_host_dir ${VM_MAIN_NAME}
+#unmount_host_dir ${VM_NODE_PREFIX}$current_counter

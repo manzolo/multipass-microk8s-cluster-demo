@@ -96,7 +96,7 @@ chmod +x "$temp_file"
 echo
 
 #multipass transfer -r ./config ${VM_MAIN_NAME}:/home/ubuntu/
-multipass exec ${VM_MAIN_NAME} -- rm microk8s_demo_config/*.template
+multipass exec ${VM_MAIN_NAME} -- rm -rf microk8s_demo_config/*.template
 
 msg_warn "Testing PHP service:"
 msg_info "http://$IP:$NODEPORT_PHP"

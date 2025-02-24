@@ -97,8 +97,8 @@ function clone_vm() {
         exit 1
     fi
 
-    # Start the destination VM after cloning
-    multipass start "$vm_dst"
+    # Start the source VM after cloning
+    multipass start "$vm_src"
 }
 
 # Function to transfer host directory
@@ -265,78 +265,98 @@ function wait_for_microk8s_ready() {
 
 function restart_microk8s_nodes() {
   local prefix="$VM_NODE_PREFIX"
-  local counter
   local retries=3  # Numero massimo di tentativi
-  instances=$(get_max_node_instance)
-  msg_info "Restarting MicroK8s on $instances nodes..."
+  local node_name
 
-  for ((counter = 1; counter <= instances; counter++)); do
-    local node_name="${prefix}${counter}"
+  msg_info "Checking nodes status..."
 
-    msg_warn "Restarting MicroK8s on $node_name..."
+  # Ottieni lo stato dei nodi
+  local nodes_status=$(multipass exec "$VM_MAIN_NAME" -- kubectl get nodes)
 
-    # Verifica se il nodo è raggiungibile
-    if ! multipass exec "$node_name" -- "true" > /dev/null 2>&1; then
-      msg_error "Node $node_name is not reachable. Skipping restart."
-      continue # Salta questo nodo e passa al successivo
+  # Trova tutti i nodi NotReady
+  local not_ready_nodes=$(echo "$nodes_status" | grep "NotReady" | awk '{print $1}')
+
+  # Se ci sono nodi NotReady, riavviali
+  if [[ -n "$not_ready_nodes" ]]; then
+    for node_name in $not_ready_nodes; do
+      msg_warn "Restarting MicroK8s on $node_name..."
+      restart_node "$node_name" "$retries"
+    done
+  else
+    msg_info "All nodes are ready. Skipping restart."
+  fi
+
+  msg_info "MicroK8s restart process completed."
+}
+
+function restart_node() {
+  local node_name=$1
+  local retries=$2
+  local attempt
+  local reached=false
+  local inspected=false
+  local restarted=false
+  local ready=false
+
+  # Verifica se il nodo è raggiungibile
+  if ! multipass exec "$node_name" -- "true" > /dev/null 2>&1; then
+    msg_error "Node $node_name is not reachable. Skipping restart."
+    return
+  fi
+
+  # Esegue l'ispezione per identificare eventuali problemi (con tentativi)
+  msg_warn "Running microk8s inspect on $node_name..."
+  attempt=1
+  while [[ $attempt -le $retries ]]; do
+    if multipass exec "$node_name" -- sudo microk8s inspect > /dev/null 2>&1; then
+      inspected=true
+      break # Comando riuscito, esci dal ciclo
+    else
+      attempt=$((attempt + 1))
+      sleep 2
     fi
-
-    # Esegue l'ispezione per identificare eventuali problemi (con tentativi)
-    msg_warn "Running microk8s inspect on $node_name..."
-    local attempt=1
-    while [[ $attempt -le $retries ]]; do
-      if multipass exec "$node_name" -- sudo microk8s inspect > /dev/null 2>&1; then
-        break # Comando riuscito, esci dal ciclo
-      else
-        #msg_error "Attempt $attempt: Failed microk8s inspect on $node_name."
-        attempt=$((attempt + 1))
-        if [[ $attempt -gt $retries ]]; then
-          continue
-          #msg_error "All attempts failed for microk8s inspect on $node_name. Skipping this node."
-          #continue 2 # Salta questo nodo e passa al successivo
-        fi
-      fi
-      sleep 2
-    done
-
-    # Riavvia MicroK8s (con tentativi)
-    msg_warn "Restarting MicroK8s on $node_name..."
-    attempt=1
-    while [[ $attempt -le $retries ]]; do
-      if multipass exec "$node_name" -- sudo snap restart microk8s > /dev/null 2>&1; then
-        break # Comando riuscito, esci dal ciclo
-      else
-        #msg_error "Attempt $attempt: Failed to restart MicroK8s on $node_name."
-        attempt=$((attempt + 1))
-        if [[ $attempt -gt $retries ]]; then
-          continue
-          #msg_error "All attempts failed to restart MicroK8s on $node_name. Skipping this node."
-          #continue 2 # Salta questo nodo e passa al successivo
-        fi
-      fi
-      sleep 2
-    done
-
-    # Attende che MicroK8s sia pronto (con tentativi)
-    msg_warn "Waiting for MicroK8s to be ready on $node_name..."
-    attempt=1
-    while [[ $attempt -le $retries ]]; do
-      if wait_for_microk8s_ready "$node_name"; then
-        msg_info "MicroK8s restarted and ready on $node_name."
-        break # Comando riuscito, esci dal ciclo
-      else
-        msg_error "Attempt $attempt: MicroK8s failed to restart and become ready on $node_name."
-        attempt=$((attempt + 1))
-        if [[ $attempt -gt $retries ]]; then
-          continue
-          #msg_error "All attempts failed for MicroK8s to become ready on $node_name. Skipping this node."
-          #continue 2 # Salta questo nodo e passa al successivo
-        fi
-      fi
-      sleep 2
-    done
-    msg_info "MicroK8s restart process completed."
   done
+
+  #if ! $inspected; then
+  #  msg_error "All attempts failed for microk8s inspect on $node_name. Skipping restart."
+  #  return
+  #fi
+
+  # Riavvia MicroK8s (con tentativi)
+  msg_warn "Restarting MicroK8s on $node_name..."
+  attempt=1
+  while [[ $attempt -le $retries ]]; do
+    if multipass exec "$node_name" -- sudo snap restart microk8s > /dev/null 2>&1; then
+      restarted=true
+      break # Comando riuscito, esci dal ciclo
+    else
+      attempt=$((attempt + 1))
+      sleep 2
+    fi
+  done
+
+  if ! $restarted; then
+    msg_error "All attempts failed to restart MicroK8s on $node_name. Skipping restart."
+    return
+  fi
+
+  # Attende che MicroK8s sia pronto (con tentativi)
+  msg_warn "Waiting for MicroK8s to be ready on $node_name..."
+  attempt=1
+  while [[ $attempt -le $retries ]]; do
+    if wait_for_microk8s_ready "$node_name"; then
+      ready=true
+      msg_info "MicroK8s restarted and ready on $node_name."
+      break # Comando riuscito, esci dal ciclo
+    else
+      attempt=$((attempt + 1))
+      sleep 2
+    fi
+  done
+
+  if ! $ready; then
+    msg_error "All attempts failed for MicroK8s to become ready on $node_name. Skipping restart."
+  fi
 }
 
 function get_max_node_instance() {

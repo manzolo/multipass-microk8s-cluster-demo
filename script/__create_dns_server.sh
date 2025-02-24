@@ -1,32 +1,44 @@
 #!/bin/bash
+set -e
 
-msg_info "Creating DNS VM: $DNS_VM_NAME"
-multipass launch $DEFAULT_UBUNTU_VERSION --name "$DNS_VM_NAME" --cpus 1 -m 1G --disk 5G
+# Include functions (assuming this is defined elsewhere)
+source "$(dirname "$0")/script/__functions.sh"
 
-_DNS_IP=$(multipass info ${DNS_VM_NAME} | grep IPv4 | awk '{print $2}')
+# Load default values and environment variables
+source "$(dirname "$0")/script/__load_env.sh"
 
-msg_info "Installing dnsmasq on $DNS_VM_NAME"
+# Function to create DNS VM
+create_dns_vm() {
+    msg_info "Creating DNS VM: $DNS_VM_NAME"
+    multipass launch "$DEFAULT_UBUNTU_VERSION" --name "$DNS_VM_NAME" --cpus 1 -m 1G --disk 5G
+}
 
-multipass exec "$DNS_VM_NAME" -- bash -c '
-    sudo apt -qq update > /dev/null 2>&1
-    sudo apt -yq install dnsmasq > /dev/null 2>&1
+# Function to install and configure dnsmasq
+install_dnsmasq() {
+    local _DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
 
-    # Disabilita systemd-resolved per evitare conflitti
-    sudo systemctl stop systemd-resolved > /dev/null 2>&1
-    sudo systemctl disable systemd-resolved > /dev/null 2>&1
-    sudo mv /etc/resolv.conf /etc/resolv.conf.backup > /dev/null 2>&1
+    msg_info "Installing dnsmasq on $DNS_VM_NAME"
 
-    # Configura dnsmasq
+    multipass exec "$DNS_VM_NAME" -- bash -c "
+        sudo apt -qq update > /dev/null 2>&1
+        sudo apt -yq install dnsmasq > /dev/null 2>&1
 
-    cat <<EOF | sudo tee /etc/resolv.conf >/dev/null
+        # Disabilita systemd-resolved per evitare conflitti
+        sudo systemctl stop systemd-resolved > /dev/null 2>&1
+        sudo systemctl disable systemd-resolved > /dev/null 2>&1
+        sudo mv /etc/resolv.conf /etc/resolv.conf.backup > /dev/null 2>&1
+
+        # Configura dnsmasq
+
+        cat <<EOF | sudo tee /etc/resolv.conf >/dev/null
 nameserver 127.0.0.1
 EOF
 
-    cat <<EOF | sudo tee /etc/dnsmasq.d/local.conf >/dev/null
-address=/'${DNS_VM_NAME}'.'${DNS_SUFFIX}'/'${_DNS_IP}'
+        cat <<EOF | sudo tee /etc/dnsmasq.d/local.conf >/dev/null
+address=/${DNS_VM_NAME}.${DNS_SUFFIX}/${_DNS_IP}
 EOF
 
-    cat <<EOF | sudo tee /etc/dnsmasq.d/dns-public.conf >/dev/null
+        cat <<EOF | sudo tee /etc/dnsmasq.d/dns-public.conf >/dev/null
 # Non usare i nameserver dal file /etc/resolv.conf
 no-resolv
 
@@ -38,20 +50,22 @@ server=1.1.1.1
 server=8.8.8.8
 
 # Abilita la risoluzione per il dominio locale .'${DNS_SUFFIX}'
-domain="'${DNS_SUFFIX}'"
+domain='${DNS_SUFFIX}'
 expand-hosts
-local=/"'${DNS_SUFFIX}'"/
+local=/'${DNS_SUFFIX}'/
 
 #Specifica un file addizionale per host locali personalizzati
 addn-hosts=/etc/dnsmasq.d/local.conf
 EOF
-    #sudo sed -i -E "/'${DNS_VM_NAME}'/d" /etc/hosts
-    sudo systemctl restart dnsmasq
-    sudo dnsmasq --test
-'
+        #sudo sed -i -E \"/'${DNS_VM_NAME}'/d\" /etc/hosts
+        sudo systemctl restart dnsmasq
+        sudo dnsmasq --test
+    "
+}
 
-# MOTD generation with color codes
-MOTD_COMMANDS=$(cat <<EOF
+# Function to generate MOTD
+generate_motd() {
+    local MOTD_COMMANDS=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
 $(tput setaf 6)$(tput bold)  DNS Management Commands
 $(tput setaf 6)$(tput bold)================================================
@@ -74,13 +88,19 @@ $(tput setaf 5)sudo systemctl restart dnsmasq$(tput sgr0)
 
 $(tput sgr0)
 EOF
-)
+    )
 
-msg_warn "Add ${DNS_VM_NAME} MOTD"
-multipass exec ${DNS_VM_NAME} -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
+    msg_warn "Add ${DNS_VM_NAME} MOTD"
+    multipass exec "$DNS_VM_NAME" -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
 echo ""
 echo "Commands to run on ${DNS_VM_NAME}:"
 echo "$MOTD_COMMANDS"
 EOF
+}
+
+# Main script execution
+create_dns_vm
+install_dnsmasq
+generate_motd
 
 msg_info "DNS VM $DNS_VM_NAME is ready!"

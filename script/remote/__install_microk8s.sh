@@ -63,5 +63,4 @@ sudo snap alias microk8s.kubectl k
 echo "Waiting for microk8s to be ready..."
 sudo microk8s status --wait-ready > /dev/null 2>&1
 #sudo cp config/hosts /etc/hosts
-##sudo rm -rf ${HOST_DIR_NAME}/_join_node.sh
 ##sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'

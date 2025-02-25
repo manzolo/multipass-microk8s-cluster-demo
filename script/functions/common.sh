@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Load .env file if it exists
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+fi
+
+NC=$'\033[0m' # No Color
+
+function msg_info() {
+  local GREEN=$'\033[0;32m'
+  printf "%s\n" "${GREEN}${*}${NC}" >&2
+}
+
+function msg_warn() {
+  local BROWN=$'\033[0;33m'
+  printf "%s\n" "${BROWN}${*}${NC}" >&2
+}
+
+function msg_error() {
+  local RED=$'\033[0;31m'
+  printf "%s\n" "${RED}${*}${NC}" >&2
+}
+
+function msg_fatal() {
+  msg_error "${*}"
+  exit 1
+}
+
+function press_any_key() {
+    read -n 1 -s -r -p "Press any key to continue..."
+}
+
+check_command_exists() {
+    if ! command -v $1 &> /dev/null
+    then
+        msg_error "$1 could not be found!"
+        exit 1
+    fi
+}
+
+run_command_on_node() {
+    node_name=$1
+    command=$2
+    multipass exec -v ${node_name} -- ${command}
+}
+
+# Funzione per eseguire un comando con un numero massimo di tentativi
+function retry_command {
+    local command="$1"
+    local max_attempts=3
+    local attempt=1
+    local wait_time=5
+
+    while [ $attempt -le $max_attempts ]; do
+        #echo "Attempt $attempt for: $command"
+        eval $command
+
+        if [ $? -eq 0 ]; then
+            #echo "Deploy OK."
+            return 0
+        else
+            echo "Error on deploy. Attempt $attempt of $max_attempts."
+            sleep $wait_time
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    echo "Command failed after $max_attempts attempts."
+    return 1
+}
+
+function show_cluster_info() {
+# Colori
+local RED='\033[0;31m'
+local GREEN='\033[0;32m'
+local YELLOW='\033[1;33m'
+local BLUE='\033[0;34m'
+local NC='\033[0m' # No Color
+
+# Intestazione della tabella
+echo
+echo
+printf "${BLUE}-----------------------------------------------------------------------------------${NC}\n"
+printf "${BLUE}%-20s | %-15s | %-30s${NC}\n" "VM Name" "IP" "Multipass Shell"
+printf "${BLUE}-----------------------------------------------------------------------------------${NC}\n"
+
+# Estrai le informazioni e formatta la tabella
+multipass list | awk '/k8s-/ {
+    name = $1
+    state = $2
+    ip = $3
+    if (state == "Running") {
+        printf "'${GREEN}'%-20s'${NC}' | '${YELLOW}'%-15s'${NC}' | multipass shell %s\n", name, ip, name
+    } else {
+        printf "'${RED}'%-20s'${NC}' | '${YELLOW}'%-15s'${NC}' | '${RED}'Stopped'${NC}'\n", name, "N/A"
+    }
+}'
+
+printf "${BLUE}-----------------------------------------------------------------------------------${NC}\n"
+echo
+}

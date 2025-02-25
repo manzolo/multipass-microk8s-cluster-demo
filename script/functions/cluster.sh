@@ -1,18 +1,46 @@
 #!/bin/bash
+
 set -e
 
-# Include functions (assuming this is defined elsewhere)
-source "$(dirname "$0")/script/__functions.sh"
+function cluster_start(){
+    msg_warn "Check prerequisites..."
+    #Check prerequisites
+    check_command_exists "multipass"
 
-# Load default values and environment variables
-source "$(dirname "$0")/script/__load_env.sh"
+    # Stop main VM
+    multipass start ${VM_MAIN_NAME}
 
-# Function to display cluster info
-display_cluster_info() {
-    msg_info "Displaying Kubernetes cluster info..."
-    multipass list | grep -i "k8s-"
+    # Stop all node VMs
+    for ((counter=1; counter<=instances; counter++)); do
+        vm_name="${VM_NODE_PREFIX}${counter}"
+        multipass start $vm_name
+    done
+
+    msg_info "All VMs started."
+    show_cluster_info
+
 }
 
+function stop_cluster(){
+    msg_warn "Check prerequisites..."
+    #Check prerequisites
+    check_command_exists "multipass"
+
+    # Stop all node VMs
+    for ((counter=1; counter<=instances; counter++)); do
+        vm_name="${VM_NODE_PREFIX}${counter}"
+        run_command_on_node $vm_name "sudo snap stop microk8s"
+        multipass stop $vm_name
+    done
+
+    # Stop main VM
+    run_command_on_node ${VM_MAIN_NAME} "sudo snap stop microk8s"
+    multipass stop ${VM_MAIN_NAME}
+
+    msg_info "All VMs stopped."
+
+    show_cluster_info
+}
 # Function to test services
 test_services() {
     local IP=$(multipass info "${VM_MAIN_NAME}" | grep IPv4 | awk '{print $2}')
@@ -26,7 +54,7 @@ test_services() {
     msg_info "http://$IP:$NODEPORT_PHP"
 
     # Clean temp files
-    local temp_file="${HOST_DIR_NAME}/script/_test.sh"
+    local temp_file="${INSTALL_DIR}/script/_test.sh"
     trap "rm -f $temp_file" EXIT
     echo "curl -s http://$IP:$NODEPORT_GO" > "$temp_file"
     chmod +x "$temp_file"
@@ -34,7 +62,7 @@ test_services() {
 }
 
 # Function to generate MOTD
-generate_motd() {
+generate_main_vm_motd() {
     local MOTD_COMMANDS=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
 $(tput setaf 6)$(tput bold)  Kubernetes Cluster Management Commands
@@ -124,11 +152,20 @@ clean_temp_files() {
     multipass exec "${VM_MAIN_NAME}" -- rm -rf microk8s_demo_config/*.template
 }
 
-# Main script execution
-display_cluster_info
-generate_motd
-scale_and_rollout_deployments
-get_all_resources
-enter_main_vm
-clean_temp_files
-test_services
+function validate_inputs(){
+    if ! [[ "$instances" =~ ^[0-9]+$ ]]; then
+        msg_error "Invalid number of instances: $instances"
+        exit 1
+    fi
+}
+
+function cluster_setup_complete() {
+    # Main script execution
+    generate_main_vm_motd
+    scale_and_rollout_deployments
+    get_all_resources
+    enter_main_vm
+    clean_temp_files
+    test_services
+}
+

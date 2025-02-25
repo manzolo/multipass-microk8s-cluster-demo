@@ -1,0 +1,147 @@
+#!/bin/bash
+
+set -e
+
+# Function to create a VM
+create_vm() {
+    local vm_name=$1
+    local ram=$2
+    local hdd=$3
+    local cpu=$4
+
+    msg_warn "Creating VM: $vm_name"
+    if ! multipass launch $DEFAULT_UBUNTU_VERSION -m $ram -d $hdd -c $cpu -n $vm_name; then
+        msg_error "Failed to create VM: $vm_name"
+        exit 1
+    fi
+    multipass info $vm_name
+}
+
+function remove_vm() {
+    local vm_name=$1
+
+    # Verifica se la VM esiste
+    if multipass list | grep -q "$vm_name"; then
+        msg_warn "Removing VM: $vm_name..."
+        multipass delete --purge "$vm_name" > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            msg_warn "VM $vm_name removed successfully."
+        else
+            msg_error "Failed to remove VM: $vm_name"
+        fi
+    else
+        msg_warn "VM $vm_name does not exist. Skipping removal."
+    fi
+}
+
+# Function to clone a VM
+function clone_vm() {
+    local vm_dst=$1
+    local vm_src=$VM_MAIN_NAME  # Default source VM
+
+    # Check if $1 contains a number
+    if [[ $vm_dst =~ ([0-9]+)$ ]]; then
+        # Extract the number from $1
+        local num=${BASH_REMATCH[1]}
+
+        # Find the last existing VM
+        local last_existing_vm=$(multipass list | grep "$VM_NODE_PREFIX" | awk '{print $1}' | sed "s/${VM_NODE_PREFIX}//" | sort -n | tail -1)
+
+        # If there are existing VMs, use the last one as the source
+        if [[ -n "$last_existing_vm" ]]; then
+            vm_src="${VM_NODE_PREFIX}${last_existing_vm}"
+        fi
+    fi
+
+    # Stop the source VM before cloning
+    if multipass list | grep -q "$vm_src"; then
+        multipass stop "$vm_src"
+    else
+        msg_warn "Source VM $vm_src does not exist. Skipping stop."
+    fi
+
+    # Log the cloning operation
+    msg_warn "Clone VM: $vm_src -> $vm_dst"
+
+    # Construct and execute the clone command
+    clone_command="multipass clone ${vm_src} -n ${vm_dst}"
+    #echo "Executing: $clone_command"
+    if ! $clone_command; then
+        msg_error "Failed to clone VM: $vm_src"
+        exit 1
+    fi
+
+    # Start the source VM after cloning
+    multipass start "$vm_src"
+}
+
+# Function to install Docker
+install_docker() {
+    local vm_name=$1
+    msg_info "Installing Docker on $vm_name..."
+    if ! multipass shell "$vm_name" > /dev/null 2>&1 <<EOF
+#!/bin/bash
+set -e
+
+# Remove old Docker packages
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
+    sudo apt-get remove -y \$pkg
+done
+
+# Add Docker's official GPG key
+sudo apt update -qq
+sudo apt-get install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add Docker repository to Apt sources
+echo \
+  "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  \$(. /etc/os-release && echo "\$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+# Install Docker
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker ubuntu || true # Ignore if group doesn't exist yet
+sudo systemctl unmask docker
+sudo systemctl enable docker
+sudo systemctl start docker
+EOF
+    then
+        msg_error "Failed to enable Docker on $vm_name."
+        exit 1
+    fi
+}
+
+function complete_microk8s_setup() {
+    wait_for_microk8s_ready "$VM_MAIN_NAME"
+
+    msg_info "=== Task 3: Completing microk8s setup ==="
+
+    multipass transfer script/remote/__rollout_pods.sh $VM_MAIN_NAME:/home/ubuntu/rollout_pods.sh
+    multipass transfer -r config $VM_MAIN_NAME:/home/ubuntu/microk8s_demo_config
+
+    # Esegui lo script
+    multipass exec $VM_MAIN_NAME -- /home/ubuntu/rollout_pods.sh
+
+    multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/rollout_pods.sh
+}
+
+function main_vm_setup(){
+    # Create main VM
+    create_vm $VM_MAIN_NAME "$mainRam" "$mainHddGb" "$mainCpu"
+
+    add_machine_to_dns $VM_MAIN_NAME
+
+    # Copia il file sulla VM
+    msg_info "=== Task 1: ${VM_MAIN_NAME} Setup ==="
+    multipass transfer script/remote/__install_microk8s.sh $VM_MAIN_NAME:/home/ubuntu/install_microk8s.sh
+    # Esegui lo script
+    multipass exec $VM_MAIN_NAME -- /home/ubuntu/install_microk8s.sh
+
+    multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/install_microk8s.sh
+
+    multipass stop $VM_MAIN_NAME
+}

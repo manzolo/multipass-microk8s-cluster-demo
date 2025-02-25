@@ -11,7 +11,7 @@ multipass transfer -r config $VM_MAIN_NAME:/home/ubuntu/microk8s_demo_config
 multipass exec $VM_MAIN_NAME -- /home/ubuntu/rollout_pods.sh
 
 multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/rollout_pods.sh
-multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/microk8s_demo_config
+#multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/microk8s_demo_config
 
 #unmount_host_dir $VM_MAIN_NAME
 

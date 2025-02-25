@@ -1,15 +1,41 @@
 #!/bin/bash
+set -e
 
-# Display cluster info
-multipass list | grep -i "k8s-"
+# Include functions (assuming this is defined elsewhere)
+source "$(dirname "$0")/script/__functions.sh"
 
-# Test services
-IP=$(multipass info ${VM_MAIN_NAME} | grep IPv4 | awk '{print $2}')
-NODEPORT_GO=$(multipass exec ${VM_MAIN_NAME} -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
-NODEPORT_PHP=$(multipass exec ${VM_MAIN_NAME} -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
+# Load default values and environment variables
+source "$(dirname "$0")/script/__load_env.sh"
 
-# MOTD generation with color codes
-MOTD_COMMANDS=$(cat <<EOF
+# Function to display cluster info
+display_cluster_info() {
+    msg_info "Displaying Kubernetes cluster info..."
+    multipass list | grep -i "k8s-"
+}
+
+# Function to test services
+test_services() {
+    local IP=$(multipass info "${VM_MAIN_NAME}" | grep IPv4 | awk '{print $2}')
+    local NODEPORT_GO=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
+    local NODEPORT_PHP=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
+
+    msg_warn "Testing Golang service:"
+    msg_info "curl -s http://$IP:$NODEPORT_GO"
+
+    msg_warn "Testing PHP service:"
+    msg_info "http://$IP:$NODEPORT_PHP"
+
+    # Clean temp files
+    local temp_file="${HOST_DIR_NAME}/script/_test.sh"
+    trap "rm -f $temp_file" EXIT
+    echo "curl -s http://$IP:$NODEPORT_GO" > "$temp_file"
+    chmod +x "$temp_file"
+    "$temp_file"
+}
+
+# Function to generate MOTD
+generate_motd() {
+    local MOTD_COMMANDS=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
 $(tput setaf 6)$(tput bold)  Kubernetes Cluster Management Commands
 $(tput setaf 6)$(tput bold)================================================
@@ -57,46 +83,52 @@ $(tput setaf 5)https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login$(tput sgr0)
 
 $(tput sgr0)
 EOF
-)
+    )
 
-msg_warn "Add ${VM_MAIN_NAME} MOTD"
-multipass exec ${VM_MAIN_NAME} -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
+    msg_warn "Add ${VM_MAIN_NAME} MOTD"
+    multipass exec "${VM_MAIN_NAME}" -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
 echo ""
 echo "Commands to run on ${VM_MAIN_NAME}:"
 echo "$MOTD_COMMANDS"
 EOF
+}
 
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=6 -n demo-go"
-multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-go --replicas=6 -n demo-go
+# Function to scale and rollout deployments
+scale_and_rollout_deployments() {
+    msg_warn "Scaling and rolling out deployments..."
 
-multipass exec ${VM_MAIN_NAME} -- kubectl rollout status deployment/demo-go -n demo-go
+    multipass exec "${VM_MAIN_NAME}" -- kubectl scale deployment demo-go --replicas=6 -n demo-go
+    multipass exec "${VM_MAIN_NAME}" -- kubectl rollout status deployment/demo-go -n demo-go
 
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=6 -n demo-php"
-multipass exec ${VM_MAIN_NAME} -- kubectl scale deployment demo-php --replicas=6 -n demo-php
-multipass exec ${VM_MAIN_NAME} -- kubectl rollout status deployment/demo-php -n demo-php
+    multipass exec "${VM_MAIN_NAME}" -- kubectl scale deployment demo-php --replicas=6 -n demo-php
+    multipass exec "${VM_MAIN_NAME}" -- kubectl rollout status deployment/demo-php -n demo-php
+}
 
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-go"
-multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-go
-msg_warn "multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-php"
-multipass exec ${VM_MAIN_NAME} -- kubectl get all -o wide -n demo-php
+# Function to get all resources
+get_all_resources() {
+    msg_warn "Getting all resources..."
 
-msg_warn "Enter on ${VM_MAIN_NAME}:"
-msg_info "multipass shell ${VM_MAIN_NAME}"
+    multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n demo-go
+    multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n demo-php
+}
 
-msg_warn "Testing Golang service:"
-msg_info "curl -s http://$IP:$NODEPORT_GO"
+# Function to enter VM
+enter_main_vm() {
+    msg_warn "Enter on ${VM_MAIN_NAME}:"
+    msg_info "multipass shell ${VM_MAIN_NAME}"
+}
 
-# Clean temp files
-temp_file="${HOST_DIR_NAME}/script/_test.sh"
-trap "rm -f $temp_file" EXIT
-echo "curl -s http://$IP:$NODEPORT_GO" > "$temp_file"
-chmod +x "$temp_file"
-"$temp_file"
+# Function to clean temp files
+clean_temp_files() {
+    msg_warn "Cleaning temporary files..."
+    multipass exec "${VM_MAIN_NAME}" -- rm -rf microk8s_demo_config/*.template
+}
 
-echo
-
-#multipass transfer -r ./config ${VM_MAIN_NAME}:/home/ubuntu/
-multipass exec ${VM_MAIN_NAME} -- rm microk8s_demo_config/*.template
-
-msg_warn "Testing PHP service:"
-msg_info "http://$IP:$NODEPORT_PHP"
+# Main script execution
+display_cluster_info
+generate_motd
+scale_and_rollout_deployments
+get_all_resources
+enter_main_vm
+clean_temp_files
+test_services

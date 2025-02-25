@@ -23,3 +23,7 @@ mainHddGb="${4:-$DEFAULT_MAIN_HDD_GB}"
 nodeCpu="${5:-$DEFAULT_NODE_CPU}"
 nodeRam="${6:-$DEFAULT_NODE_RAM}"
 nodeHddGb="${7:-$DEFAULT_NODE_HDD_GB}"
+
+INSTALL_DIR=$(dirname $0)
+CONFIG_DIR=${INSTALL_DIR}/config
+

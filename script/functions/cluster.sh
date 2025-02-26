@@ -58,16 +58,10 @@ function stop_cluster(){
 test_services() {
     local IP=$(multipass info "${VM_MAIN_NAME}" | grep IPv4 | awk '{print $2}')
 
-    if [ "$deploy_demo_go" = "true" ]; then
+    if [ "$deploy_demo_go" = true ]; then
         local NODEPORT_GO=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
         msg_warn "Testing Golang service:"
         msg_info "curl -s http://$IP:$NODEPORT_GO"
-    fi
-
-    if [ "$deploy_demo_php" = "true" ]; then
-        local NODEPORT_PHP=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
-        msg_warn "Testing PHP service:"
-        msg_info "http://$IP:$NODEPORT_PHP"
         
         # Clean temp files
         local temp_file="${INSTALL_DIR}/script/_test.sh"
@@ -75,6 +69,12 @@ test_services() {
         echo "curl -s http://$IP:$NODEPORT_GO" > "$temp_file"
         chmod +x "$temp_file"
         "$temp_file"
+    fi
+
+    if [ "$deploy_demo_php" = true ]; then
+        local NODEPORT_PHP=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
+        msg_warn "Testing PHP service:"
+        msg_info "http://$IP:$NODEPORT_PHP"
     fi
 }
 

@@ -29,6 +29,7 @@ cluster_management() {
         "Add Cluster Node" "Add a node to the Kubernetes cluster"
         "Remove Cluster Node" "Remove a node from the Kubernetes cluster"
         "Show Cluster" "Show Cluster information"
+        "Restore Cluster Health" "Restore Cluster Health"
         "Destroy Cluster" "Destroy the Kubernetes cluster"
         "Back" "Return to main menu"
     )
@@ -45,16 +46,21 @@ cluster_management() {
                 start_cluster && msg_info "Cluster startup done." || msg_error "Error during cluster startup."
                 sleep 5
                 restart_microk8s_nodes
+                show_cluster_info
+                press_any_key
+                echo
             ;;
+            "Stop Cluster")
+                stop_cluster && msg_info "Cluster shutdown done." || msg_error "Error during cluster shutdown.";
+                show_cluster_info
+                press_any_key
+                echo
+                ;;
             "Shell on ${VM_MAIN_NAME}")
                 multipass shell "${VM_MAIN_NAME}" && msg_info "Shell ${VM_MAIN_NAME} OK." || msg_error "Error shell ${VM_MAIN_NAME}."
                 press_any_key
                 echo
-                ;;
-            "Stop Cluster")
-                stop_cluster && msg_info "Cluster shutdown done." || msg_error "Error during cluster shutdown.";
-                ;;
-            "Add Cluster Node")
+                ;;            "Add Cluster Node")
                 add_node && msg_info "Node addition done." || msg_error "Error during node addition."
                 restart_microk8s_nodes
                 show_cluster_info
@@ -70,6 +76,12 @@ cluster_management() {
                 fi
                 ;;
             "Show Cluster")
+                show_cluster_info
+                press_any_key
+                echo
+                ;;
+            "Restore Cluster Health")
+                restart_microk8s_nodes
                 show_cluster_info
                 press_any_key
                 echo

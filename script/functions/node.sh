@@ -154,29 +154,11 @@ check_prerequisites() {
     check_command_exists "multipass" || { msg_error "Multipass is not installed or cannot be found. Exiting."; exit 1; }
 }
 
-# Function to create and configure node VM
-create_and_configure_node_vm() {
-    local current_counter=$(get_available_node_number)
-    local node_name="${VM_NODE_PREFIX}${current_counter}"
-
-    msg_warn "Creating VM: $node_name"
-    clone_vm "$node_name"
-    multipass start "$node_name"
-    wait_for_microk8s_ready "$node_name"
-
-    add_machine_to_dns "$node_name"
-    multipass info "$node_name"
-
-    multipass start "$VM_MAIN_NAME"
-    wait_for_microk8s_ready "$VM_MAIN_NAME"
-    sleep 5
-
-    generate_join_command "$node_name"
-}
-
 # Function to generate join command
-generate_join_command() {
-    local node_name=$1
+node_cluster_join() {
+local node_name=$1
+    local max_retries=3 # Numero massimo di tentativi
+    local retry_count=0
 
     msg_warn "Generating join cluster command for $VM_MAIN_NAME"
     multipass transfer script/remote/__join_cluster_helper.sh "$VM_MAIN_NAME:/home/ubuntu/join_cluster_helper.sh"
@@ -186,13 +168,86 @@ generate_join_command() {
     multipass exec "$VM_MAIN_NAME" -- rm -rf /home/ubuntu/join_cluster_helper.sh
 
     msg_warn "Installing microk8s on $node_name"
-    multipass exec "$node_name" -- $CLUSTER_JOIN_COMMAND
+
+    while [[ $retry_count -lt $max_retries ]]; do
+        if multipass exec "$node_name" -- $CLUSTER_JOIN_COMMAND; then
+            msg_info "MicroK8s joined successfully on $node_name."
+            return # Comando riuscito, esci dalla funzione
+        else
+            retry_count=$((retry_count + 1))
+            msg_warn "Join command failed on $node_name. Retry attempt $retry_count of $max_retries..."
+            sleep 5 # Attendi 5 secondi prima di riprovare
+        fi
+    done
+
+    msg_error "Failed to join MicroK8s on $node_name after $max_retries attempts."
 }
 
 function add_node() {
     # Main script execution
     check_prerequisites
-    create_and_configure_node_vm
+
+    # Gestione del parametro opzionale
+    if [[ -n "$1" && "$1" =~ ^[0-9]+$ ]]; then
+        NUM_VMS="$1"
+    else
+        NUM_VMS=1
+    fi
+
+    local max_node_before_clone=$(get_max_node_instance) # Ottieni il numero massimo di nodi prima della clonazione.
+    local starting_index=$(get_available_node_number)
+
+    # Controllo per evitare l'errore di indice negativo o zero
+    if [[ $starting_index -eq 0 ]]; then
+        starting_index=1
+    fi
+
+    # Fase di clonazione
+    for ((i=1; i<=NUM_VMS; i++)); do
+        clone_node_vm
+    done
+
+    msg_warn "Configuring VM nodes..."
+    # Fase di configurazione
+    for ((current_vm=starting_index; current_vm < starting_index + NUM_VMS; current_vm++)); do
+        local node_name="${VM_NODE_PREFIX}${current_vm}"
+        configure_node_vm "$node_name"
+    done
+
+    # Riavvia il nodo principale (VM_MAIN_NAME)
+    if [[ "$NUM_VMS" -gt 0 ]]; then
+        msg_warn "Restarting main node: $VM_MAIN_NAME"
+        multipass start "$VM_MAIN_NAME"
+        wait_for_microk8s_ready "$VM_MAIN_NAME"
+    fi
+}
+
+# Function to clone node VM (solo clonazione)
+function clone_node_vm() {
+    local max_node=$(get_max_node_instance) # Ottieni il numero massimo di nodi esistenti
+    local node_name="${VM_NODE_PREFIX}${max_node}" # Nodo da clonare
+    local new_node_name="${VM_NODE_PREFIX}$(get_available_node_number)" # Nome del nuovo nodo
+
+    msg_warn "Cloning VM: $new_node_name"
+    clone_vm "$new_node_name" "$node_name" # Clona dall'ultimo nodo creato
+}
+
+# Function to configure node VM (configurazione e avvio)
+function configure_node_vm() {
+    local node_name=$1
+
+    multipass start "$node_name" # Avvia la VM
+    sleep 5 # Aggiungi una pausa per permettere a Multipass di aggiornare lo stato
+    wait_for_microk8s_ready "$node_name"
+
+    add_machine_to_dns "$node_name"
+    multipass info "$node_name"
+
+    multipass start "$VM_MAIN_NAME"
+    wait_for_microk8s_ready "$VM_MAIN_NAME"
+    sleep 5
+
+    node_cluster_join "$node_name"
 }
 
 function remove_node() {

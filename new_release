@@ -26,9 +26,9 @@ new_patch=$((patch + 1))
 new_version=$(echo $last_tag | sed "s/$patch/$new_patch/")
 
 echo git flow release start "$new_version"
-read -p
+read -n 1 -s -r -p "Press any key to continue..."
 git flow release start "$new_version"
 echo git flow release finish "$new_version"
-read -p
+read -n 1 -s -r -p "Press any key to continue..."
 git flow release finish "$new_version"
 

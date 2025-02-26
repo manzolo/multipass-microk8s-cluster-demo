@@ -57,21 +57,25 @@ function stop_cluster(){
 # Function to test services
 test_services() {
     local IP=$(multipass info "${VM_MAIN_NAME}" | grep IPv4 | awk '{print $2}')
-    local NODEPORT_GO=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
-    local NODEPORT_PHP=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
 
-    msg_warn "Testing Golang service:"
-    msg_info "curl -s http://$IP:$NODEPORT_GO"
+    if [ "$deploy_demo_go" = "true" ]; then
+        local NODEPORT_GO=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-go -n demo-go)
+        msg_warn "Testing Golang service:"
+        msg_info "curl -s http://$IP:$NODEPORT_GO"
+    fi
 
-    msg_warn "Testing PHP service:"
-    msg_info "http://$IP:$NODEPORT_PHP"
-
-    # Clean temp files
-    local temp_file="${INSTALL_DIR}/script/_test.sh"
-    trap "rm -f $temp_file" EXIT
-    echo "curl -s http://$IP:$NODEPORT_GO" > "$temp_file"
-    chmod +x "$temp_file"
-    "$temp_file"
+    if [ "$deploy_demo_php" = "true" ]; then
+        local NODEPORT_PHP=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services demo-php -n demo-php)
+        msg_warn "Testing PHP service:"
+        msg_info "http://$IP:$NODEPORT_PHP"
+        
+        # Clean temp files
+        local temp_file="${INSTALL_DIR}/script/_test.sh"
+        trap "rm -f $temp_file" EXIT
+        echo "curl -s http://$IP:$NODEPORT_GO" > "$temp_file"
+        chmod +x "$temp_file"
+        "$temp_file"
+    fi
 }
 
 # Function to generate MOTD
@@ -140,20 +144,29 @@ EOF
 # Function to scale and rollout deployments
 scale_and_rollout_deployments() {
     msg_warn "Scaling and rolling out deployments..."
-
-    multipass exec "${VM_MAIN_NAME}" -- kubectl scale deployment demo-go --replicas=6 -n demo-go
-    multipass exec "${VM_MAIN_NAME}" -- kubectl rollout status deployment/demo-go -n demo-go
-
-    multipass exec "${VM_MAIN_NAME}" -- kubectl scale deployment demo-php --replicas=6 -n demo-php
-    multipass exec "${VM_MAIN_NAME}" -- kubectl rollout status deployment/demo-php -n demo-php
+    # Applica la configurazione per demo-go se DEPLOY_DEMO_GO è true
+    if [ "$deploy_demo_go" = "true" ]; then
+        multipass exec "${VM_MAIN_NAME}" -- kubectl scale deployment demo-go --replicas=6 -n demo-go
+        multipass exec "${VM_MAIN_NAME}" -- kubectl rollout status deployment/demo-go -n demo-go
+    fi
+    # Applica la configurazione per demo-PHP se DEPLOY_DEMO_PHP è true
+    if [ "$deploy_demo_php" = "true" ]; then
+        multipass exec "${VM_MAIN_NAME}" -- kubectl scale deployment demo-php --replicas=6 -n demo-php
+        multipass exec "${VM_MAIN_NAME}" -- kubectl rollout status deployment/demo-php -n demo-php
+    fi
 }
 
 # Function to get all resources
 get_all_resources() {
     msg_warn "Getting all resources..."
 
-    multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n demo-go
-    multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n demo-php
+    if [ "$deploy_demo_go" = "true" ]; then
+       multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n demo-go
+    fi
+
+    if [ "$deploy_demo_php" = "true" ]; then
+        multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n demo-php
+    fi
 }
 
 # Function to enter VM

@@ -261,5 +261,4 @@ function remove_node() {
     multipass stop --force $vm_name
     multipass delete --purge $vm_name
     multipass purge
-    multipass list
 }

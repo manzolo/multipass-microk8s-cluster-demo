@@ -2,15 +2,18 @@
 
 set -e
 
-function cluster_start(){
+function start_cluster(){
     msg_warn "Check prerequisites..."
     #Check prerequisites
     check_command_exists "multipass"
 
-    # Stop main VM
+    # Start dns server VM
+    multipass start ${DNS_VM_NAME}
+
+    # Start main VM
     multipass start ${VM_MAIN_NAME}
 
-    # Stop all node VMs
+    # Start all node VMs
     for ((counter=1; counter<=instances; counter++)); do
         vm_name="${VM_NODE_PREFIX}${counter}"
         multipass start $vm_name
@@ -29,18 +32,28 @@ function stop_cluster(){
     # Stop all node VMs
     for ((counter=1; counter<=instances; counter++)); do
         vm_name="${VM_NODE_PREFIX}${counter}"
-        run_command_on_node $vm_name "sudo snap stop microk8s"
+        # Check if VM is running
+        if [[ $(multipass info "$vm_name" | grep "State:" | awk '{print $2}') == "Running" ]]; then
+            run_command_on_node $vm_name "sudo snap stop microk8s"
+        fi
         multipass stop $vm_name
     done
 
     # Stop main VM
-    run_command_on_node ${VM_MAIN_NAME} "sudo snap stop microk8s"
+    # Check if VM is running
+    if [[ $(multipass info "${VM_MAIN_NAME}" | grep "State:" | awk '{print $2}') == "Running" ]]; then
+        run_command_on_node ${VM_MAIN_NAME} "sudo snap stop microk8s"
+    fi
     multipass stop ${VM_MAIN_NAME}
+    
+    # Stop dns server VM
+    multipass stop ${DNS_VM_NAME}
 
     msg_info "All VMs stopped."
 
     show_cluster_info
 }
+
 # Function to test services
 test_services() {
     local IP=$(multipass info "${VM_MAIN_NAME}" | grep IPv4 | awk '{print $2}')

@@ -105,19 +105,26 @@ function show_cluster_info() {
     printf "${BLUE}%-20s | %-15s | %-10s${NC}\n" "Node Name" "Status" "Version"
     printf "${BLUE}---------------------------------------------------------------${NC}\n"
 
-    # Estrai le informazioni e formatta la tabella Kubernetes
-    multipass exec k8s-main -- kubectl get nodes | awk 'NR>1 {
-        name = $1
-        status = $2
-        roles = $3
-        version = $5
-        if (status == "Ready") {
-            printf "'${GREEN}'%-20s'${NC}' | '${GREEN}'%-15s'${NC}' | %-10s\n", name, status, version
-        } else {
-            printf "'${RED}'%-20s'${NC}' | '${RED}'%-15s'${NC}' | %-10s\n", name, status, version
-        }
-    }'
+    # Verifica lo stato di k8s-main
+    local main_state=$(multipass info k8s-main | grep "State:" | awk '{print $2}')
 
-printf "${BLUE}---------------------------------------------------------------${NC}\n"
-echo
+    # Estrai le informazioni e formatta la tabella Kubernetes solo se k8s-main è in esecuzione
+    if [[ "$main_state" == "Running" ]]; then
+        multipass exec k8s-main -- kubectl get nodes | awk 'NR>1 {
+            name = $1
+            status = $2
+            roles = $3
+            version = $5
+            if (status == "Ready") {
+                printf "'${GREEN}'%-20s'${NC}' | '${GREEN}'%-15s'${NC}' | %-10s\n", name, status, version
+            } else {
+                printf "'${RED}'%-20s'${NC}' | '${RED}'%-15s'${NC}' | %-10s\n", name, status, version
+            }
+        }'
+    else
+        printf "${YELLOW}k8s-main is not running. Kubernetes info not available.${NC}\n"
+    fi
+
+    printf "${BLUE}---------------------------------------------------------------${NC}\n"
+    echo
 }

@@ -162,7 +162,6 @@ local node_name=$1
 
     msg_warn "Generating join cluster command for $VM_MAIN_NAME"
     multipass transfer script/remote/__join_cluster_helper.sh "$VM_MAIN_NAME:/home/ubuntu/join_cluster_helper.sh"
-    multipass transfer script/remote/__rollout_pods.sh "$VM_MAIN_NAME:/home/ubuntu/rollout_pods.sh"
 
     local CLUSTER_JOIN_COMMAND=$(multipass exec "$VM_MAIN_NAME" -- /home/ubuntu/join_cluster_helper.sh)
     multipass exec "$VM_MAIN_NAME" -- rm -rf /home/ubuntu/join_cluster_helper.sh
@@ -262,5 +261,4 @@ function remove_node() {
     multipass stop --force $vm_name
     multipass delete --purge $vm_name
     multipass purge
-    multipass list
 }

@@ -60,10 +60,13 @@ cluster_management() {
                 multipass shell "${VM_MAIN_NAME}" && msg_info "Shell ${VM_MAIN_NAME} OK." || msg_error "Error shell ${VM_MAIN_NAME}."
                 press_any_key
                 echo
-                ;;            "Add Cluster Node")
+                ;;
+            "Add Cluster Node")
                 add_node && msg_info "Node addition done." || msg_error "Error during node addition."
                 restart_microk8s_nodes
                 show_cluster_info
+                press_any_key
+                echo
                 ;;
             "Remove Cluster Node")
                 NODE_NAME=$(whiptail --inputbox "Enter the instance name of the node to remove (e.g., k8s-node3):" 8 50 --title "Node Name" 3>&1 1>&2 2>&3)
@@ -71,9 +74,10 @@ cluster_management() {
                     remove_node "$NODE_NAME" && msg_info "Node removal done." || msg_error "Error during node removal."
                 else
                     echo "Node removal cancelled."
-                    press_any_key
-                    echo
                 fi
+                show_cluster_info
+                press_any_key
+                echo
                 ;;
             "Show Cluster")
                 show_cluster_info

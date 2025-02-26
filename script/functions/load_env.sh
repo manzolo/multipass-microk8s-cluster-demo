@@ -10,6 +10,12 @@ DEFAULT_NODE_CPU="${NODE_CPU:-1}"
 DEFAULT_NODE_RAM="${NODE_RAM:-2Gb}"
 DEFAULT_NODE_HDD_GB="${NODE_HDD_GB:-10Gb}"
 
+DEFAULT_DEPLOY_DEMO_GO="${DEPLOY_DEMO_GO:-false}"
+DEFAULT_DEPLOY_DEMO_PHP="${DEPLOY_DEMO_PHP:-false}"
+DEFAULT_DEPLOY_STATIC_SITE="${DEPLOY_STATIC_SITE:-false}"
+DEFAULT_DEPLOY_MARIADB="${DEPLOY_MARIADB:-false}"
+DEFAULT_DEPLOY_MONGODB="${DEPLOY_MONGODB:-false}"
+
 # Load .env file if it exists
 if [ -f .env ]; then
     source .env
@@ -23,6 +29,12 @@ mainHddGb="${4:-$DEFAULT_MAIN_HDD_GB}"
 nodeCpu="${5:-$DEFAULT_NODE_CPU}"
 nodeRam="${6:-$DEFAULT_NODE_RAM}"
 nodeHddGb="${7:-$DEFAULT_NODE_HDD_GB}"
+
+deploy_demo_go=${8:-$DEFAULT_DEPLOY_DEMO_GO}
+deploy_demo_php=${9:-$DEFAULT_DEPLOY_DEMO_PHP}
+deploy_static_site=${10:-$DEFAULT_DEPLOY_STATIC_SITE}
+deploy_mariadb=${11:-$DEFAULT_DEPLOY_MARIADB}
+deploy_mongodb=${12:-$DEFAULT_DEPLOY_MONGODB}
 
 INSTALL_DIR=$(dirname $0)
 CONFIG_DIR=${INSTALL_DIR}/config

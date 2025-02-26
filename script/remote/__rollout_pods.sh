@@ -38,6 +38,9 @@ retry_command "kubectl rollout status deployment/demo-php -n demo-php"
 retry_command "kubectl apply -f microk8s_demo_config/static-site.yaml"
 retry_command "kubectl rollout status deployment/static-site -n static-site"
 
+# Applica la configurazione per mariadb + phpmyadmin e verifica lo stato del rollout
+retry_command "kubectl apply -f microk8s_demo_config/mariadb.yaml"
+retry_command "kubectl rollout status deployment/phpmyadmin -n mariadb"
 
 # Messaggio di avviso e attesa
 echo "Waiting for deploy complete..."

@@ -103,6 +103,9 @@ $(tput setaf 7)kubectl get all -o wide -n demo-php$(tput sgr0)
 $(tput setaf 8)$(tput bold)👀 Show demo-go pods:$(tput sgr0)
 $(tput setaf 8)kubectl get all -o wide -n demo-go$(tput sgr0)
 
+$(tput setaf 8)$(tput bold)👀 Show mariadb pods:$(tput sgr0)
+$(tput setaf 8)kubectl get all -o wide -n mariadb$(tput sgr0)
+
 $(tput setaf 9)$(tput bold)🖥️ Show node details:$(tput sgr0)
 $(tput setaf 9)kubectl get node$(tput sgr0)
 

@@ -31,4 +31,6 @@ git flow release start "$new_version"
 echo git flow release finish "$new_version"
 read -n 1 -s -r -p "Press any key to continue..."
 git flow release finish "$new_version"
-
+echo git push origin main --tags
+read -n 1 -s -r -p "Press any key to continue..."
+git git push origin main --tags

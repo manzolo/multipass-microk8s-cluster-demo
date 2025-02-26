@@ -31,11 +31,7 @@ create_dns_server
 main_vm_setup
 
 # Create worker node VMs
-for ((counter=1; counter<=instances; counter++)); do
-    # Install and configure microk8s
-    add_node
-    #store_install_dir ${VM_NODE_PREFIX}${counter}
-done
+add_node $instances
 
 restart_microk8s_nodes
 

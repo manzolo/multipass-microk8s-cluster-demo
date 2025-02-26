@@ -72,7 +72,7 @@ function clone_vm() {
     fi
 
     # Start the source VM after cloning
-    multipass start "$vm_src"
+    #multipass start "$vm_src"
 }
 
 # Function to install Docker

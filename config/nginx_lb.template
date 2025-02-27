@@ -32,7 +32,7 @@ server {
     }
 }
 
-upstream k8s-static-site {
+upstream k8s-cluster-static-site {
     server ${VM_MAIN_NAME}.${DNS_SUFFIX}:31003;
 }
 
@@ -41,7 +41,41 @@ server {
     server_name static-site.${DNS_SUFFIX};
 
     location / {
-        proxy_pass http://k8s-static-site;
+        proxy_pass http://k8s-cluster-static-site;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+upstream k8s-cluster-phpmyadmin {
+    server ${VM_MAIN_NAME}.${DNS_SUFFIX}:31011;
+}
+
+server {
+    listen 80;
+    server_name phpmyadmin.${DNS_SUFFIX};
+
+    location / {
+        proxy_pass http://k8s-cluster-phpmyadmin;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+upstream k8s-cluster-mongodb {
+    server ${VM_MAIN_NAME}.${DNS_SUFFIX}:31012;
+}
+
+server {
+    listen 80;
+    server_name mongodb.${DNS_SUFFIX};
+
+    location / {
+        proxy_pass http://k8s-cluster-mongodb;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

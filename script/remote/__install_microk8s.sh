@@ -26,6 +26,8 @@ sudo swapoff -a
 #sudo apt update -qq
 #sudo apt upgrade -qqy
 #sudo snap refresh
+sudo apt update -qq
+sudo apt install -qqy nfs-common
 sudo snap install --stable snapd
 sudo snap install microk8s --classic --stable
 #sudo snap install microk8s --channel=latest/stable --classic
@@ -60,6 +62,12 @@ sudo snap alias microk8s.kubectl k
 #microk8s enable dns
 #microk8s enable dashboard
 #microk8s enable helm
+
+#Longhorn storage
+helm repo add longhorn https://charts.longhorn.io
+sudo helm repo update
+sudo helm install longhorn longhorn/longhorn --namespace longhorn-system --set csi.kubeletRootDir="/var/snap/microk8s/common/var/lib/kubelet" --create-namespace
+
 echo "Waiting for microk8s to be ready..."
 sudo microk8s status --wait-ready > /dev/null 2>&1
 #sudo cp config/hosts /etc/hosts

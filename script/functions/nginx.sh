@@ -18,6 +18,9 @@ generate_nginx_config() {
   for node in $node_instances; do
     sed -i "/upstream k8s-cluster-go {/a\    server ${node}.${DNS_SUFFIX}:31001;" "$nginx_config"
     sed -i "/upstream k8s-cluster-php {/a\    server ${node}.${DNS_SUFFIX}:31002;" "$nginx_config"
+    sed -i "/upstream k8s-cluster-static-site {/a\    server ${node}.${DNS_SUFFIX}:31003;" "$nginx_config"
+    sed -i "/upstream k8s-cluster-phpmyadmin {/a\    server ${node}.${DNS_SUFFIX}:31011;" "$nginx_config"
+    sed -i "/upstream k8s-cluster-mongodb {/a\    server ${node}.${DNS_SUFFIX}:31012;" "$nginx_config"
   done
   multipass transfer "$nginx_config" "$LOAD_BALANCE_HOSTNAME:/tmp/nginx_lb.conf"
   rm -rf "$nginx_config"
@@ -43,6 +46,9 @@ add_nginx_dns_entries() {
   add_machine_to_dns "demo-go" "$VM_IP"
   add_machine_to_dns "demo-php" "$VM_IP"
   add_machine_to_dns "static-site" "$VM_IP"
+  add_machine_to_dns "phpmyadmin" "$VM_IP"
+  add_machine_to_dns "mongodb" "$VM_IP"
+  
 }
 
 # Function to generate MOTD
@@ -73,14 +79,16 @@ $(tput sgr0)
 http://demo-go.${DNS_SUFFIX}
 http://demo-php.${DNS_SUFFIX}
 http://static-site.${DNS_SUFFIX}
+http://phpmyadmin.${DNS_SUFFIX}
 
-
+ping ${DNS_VM_NAME}.${DNS_SUFFIX}
 ping ${VM_MAIN_NAME}.${DNS_SUFFIX}
+ping ${VM_NODE_PREFIX}1.${DNS_SUFFIX}
+
 ping demo-php.${DNS_SUFFIX}
 ping demo-go.${DNS_SUFFIX}
 ping static-site.${DNS_SUFFIX}
-ping ${VM_NODE_PREFIX}1.${DNS_SUFFIX}
-ping ${DNS_VM_NAME}.${DNS_SUFFIX}
+ping phpmyadmin.${DNS_SUFFIX}
 
 EOF
 )

@@ -1,0 +1,163 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mariadb
+---
+# Secret per la password di root (password "root" codificata in base64: cm9vdA==)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+  namespace: mariadb
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: cm9vdA==
+---
+# Service Headless per il StatefulSet di MariaDB
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: mariadb
+  labels:
+    app: mariadb
+spec:
+  clusterIP: None
+  selector:
+    app: mariadb
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+# StatefulSet di MariaDB con volumeClaimTemplates
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+  namespace: mariadb
+spec:
+  serviceName: "mariadb"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb:11.4
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_ROOT_PASSWORD
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mariadb-data
+          mountPath: /var/lib/mysql
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+  volumeClaimTemplates:
+  - metadata:
+      name: mariadb-data
+    spec:
+      storageClassName: longhorn
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+---
+# Deployment di phpMyAdmin (app stateless, scalabile)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phpmyadmin
+  namespace: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: phpmyadmin
+  template:
+    metadata:
+      labels:
+        app: phpmyadmin
+    spec:
+      containers:
+      - name: phpmyadmin
+        image: phpmyadmin:5.2.2-apache
+        env:
+        - name: PMA_HOST
+          value: mariadb
+        - name: PMA_PORT
+          value: "3306"
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_ROOT_PASSWORD
+        - name: PMA_USER
+          value: "root"
+        - name: PMA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_ROOT_PASSWORD
+        - name: PMA_ARBITRARY
+          value: "1"
+        ports:
+        - containerPort: 80
+          name: http-web-svc
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "128Mi"
+          limits:
+            cpu: "300m"
+            memory: "256Mi"
+---
+# Service per phpMyAdmin (esposto tramite NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: phpmyadmin
+  namespace: mariadb
+spec:
+  type: NodePort
+  selector:
+    app: phpmyadmin
+  ports:
+    - port: 80
+      targetPort: http-web-svc
+      protocol: TCP
+      nodePort: 31011
+---
+# Ingress per accedere a phpMyAdmin tramite hostname
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: phpmyadmin-ingress
+  namespace: mariadb
+spec:
+  rules:
+  - host: phpmyadmin.loc
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: phpmyadmin
+            port:
+              number: 80

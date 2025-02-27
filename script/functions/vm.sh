@@ -129,6 +129,7 @@ deploy_demo_php=$deploy_demo_php
 deploy_static_site=$deploy_static_site
 deploy_mariadb=$deploy_mariadb
 deploy_mongodb=$deploy_mongodb
+deploy_postgres=$deploy_postgres
 
 # Funzione per eseguire un comando con un numero massimo di tentativi
 function retry_command {
@@ -184,6 +185,7 @@ function k8s_deploy() {
 
     # Applica la configurazione per mariadb + phpmyadmin se deploy_mariadb è true
     if [ "\$deploy_mariadb" = true ]; then
+        echo "Mariadb: root - root"
         retry_command "kubectl apply -f microk8s_demo_config/mariadb.yaml"
         retry_command "kubectl rollout status deployment/phpmyadmin -n mariadb"
     else
@@ -196,6 +198,15 @@ function k8s_deploy() {
         retry_command "kubectl rollout status deployment/mongodb-express -n mongodb"
     else
         echo "Skipping mongodb deployment."
+    fi
+    
+    # Applica la configurazione per postgres se deploy_postgres è true
+    if [ "\$deploy_postgres" = true ]; then
+        echo "Pgadmin: admin@example.com - password"
+        retry_command "kubectl apply -f microk8s_demo_config/postgres.yaml"
+        retry_command "kubectl rollout status deployment/pgadmin -n postgres"
+    else
+        echo "Skipping postgres deployment."
     fi
 
     # Messaggio di avviso e attesa

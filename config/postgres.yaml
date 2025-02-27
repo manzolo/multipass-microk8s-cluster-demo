@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgres
+---
+# Secret per la password di root di PostgreSQL (password "password" codificata in base64: cGFzc3dvcmQ=)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: postgres
+type: Opaque
+data:
+  POSTGRES_USER: cG9zdGdyZXM= # postgres
+  POSTGRES_PASSWORD: cGFzc3dvcmQ= # password
+---
+# Service Headless per il StatefulSet di PostgreSQL
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: postgres
+  labels:
+    app: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# StatefulSet di PostgreSQL con volumeClaimTemplates
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: postgres
+spec:
+  serviceName: "postgres"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      storageClassName: longhorn # o il tuo storage provider
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 2Gi
+---
+# Deployment di pgAdmin (app stateless, scalabile)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgadmin
+  namespace: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgadmin
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+    spec:
+      containers:
+      - name: pgadmin
+        image: dpage/pgadmin4:latest
+        env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          value: admin@example.com
+        - name: PGADMIN_DEFAULT_PASSWORD
+          value: password
+        ports:
+        - containerPort: 80
+          name: http-web-svc
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "256Mi"
+          limits:
+            cpu: "300m"
+            memory: "512Mi"
+---
+# Service per pgAdmin (esposto tramite NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin
+  namespace: postgres
+spec:
+  type: NodePort
+  selector:
+    app: pgadmin
+  ports:
+    - port: 80
+      targetPort: http-web-svc
+      protocol: TCP
+      nodePort: 31013
+---
+# Ingress per accedere a pgAdmin tramite hostname
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pgadmin-ingress
+  namespace: postgres
+spec:
+  rules:
+  - host: pgadmin.loc
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pgadmin
+            port:
+              number: 80

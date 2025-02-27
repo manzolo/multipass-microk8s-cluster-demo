@@ -18,6 +18,7 @@ create_and_configure_rancher_vm() {
     fi
 
     add_machine_to_dns "$vm_name"
+    restart_dns_service
     configure_rancher_dns_resolution "$vm_name"
     install_docker "$vm_name"
     start_rancher "$vm_name"
@@ -143,4 +144,5 @@ function destroy_rancher() {
     multipass purge > /dev/null 2>&1
 
     remove_machine_from_dns $RANCHER_HOSTNAME
+    restart_dns_service
 }

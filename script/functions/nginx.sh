@@ -21,6 +21,8 @@ generate_nginx_config() {
     sed -i "/upstream k8s-cluster-static-site {/a\    server ${node}.${DNS_SUFFIX}:31003;" "$nginx_config"
     sed -i "/upstream k8s-cluster-phpmyadmin {/a\    server ${node}.${DNS_SUFFIX}:31011;" "$nginx_config"
     sed -i "/upstream k8s-cluster-mongodb {/a\    server ${node}.${DNS_SUFFIX}:31012;" "$nginx_config"
+    sed -i "/upstream k8s-cluster-pgadmin {/a\    server ${node}.${DNS_SUFFIX}:31013;" "$nginx_config"
+    sed -i "/upstream k8s-cluster-kibana {/a\    server ${node}.${DNS_SUFFIX}:31014;" "$nginx_config"
   done
   multipass transfer "$nginx_config" "$LOAD_BALANCE_HOSTNAME:/tmp/nginx_lb.conf"
   rm -rf "$nginx_config"
@@ -48,7 +50,8 @@ add_nginx_dns_entries() {
   add_machine_to_dns "static-site" "$VM_IP"
   add_machine_to_dns "phpmyadmin" "$VM_IP"
   add_machine_to_dns "mongodb" "$VM_IP"
-  
+  add_machine_to_dns "pgadmin" "$VM_IP"
+  add_machine_to_dns "kibana" "$VM_IP"
 }
 
 # Function to generate MOTD

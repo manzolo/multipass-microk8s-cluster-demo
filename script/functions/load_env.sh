@@ -15,6 +15,8 @@ DEFAULT_DEPLOY_DEMO_PHP="${DEPLOY_DEMO_PHP:-false}"
 DEFAULT_DEPLOY_STATIC_SITE="${DEPLOY_STATIC_SITE:-false}"
 DEFAULT_DEPLOY_MARIADB="${DEPLOY_MARIADB:-false}"
 DEFAULT_DEPLOY_MONGODB="${DEPLOY_MONGODB:-false}"
+DEFAULT_DEPLOY_POSTGRES="${DEPLOY_POSTGRES:-false}"
+DEFAULT_DEPLOY_ELK="${DEPLOY_ELK:-false}"
 
 # Load .env file if it exists
 if [ -f .env ]; then
@@ -35,6 +37,8 @@ deploy_demo_php=${9:-$DEFAULT_DEPLOY_DEMO_PHP}
 deploy_static_site=${10:-$DEFAULT_DEPLOY_STATIC_SITE}
 deploy_mariadb=${11:-$DEFAULT_DEPLOY_MARIADB}
 deploy_mongodb=${12:-$DEFAULT_DEPLOY_MONGODB}
+deploy_postgres=${13:-$DEFAULT_DEPLOY_POSTGRES}
+deploy_elk=${13:-$DEFAULT_DEPLOY_ELK}
 
 INSTALL_DIR=$(dirname $0)
 CONFIG_DIR=${INSTALL_DIR}/config

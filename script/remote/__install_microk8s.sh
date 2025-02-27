@@ -1,5 +1,51 @@
 #!/bin/bash
 
+# Funzione per verificare lo stato dei Pods
+check_pods() {
+  kubectl get pods -n longhorn-system 2>/dev/null | grep -v 'Running\|Completed' >/dev/null
+  return $?
+}
+
+# Funzione per verificare lo stato dei Deployments
+check_deployments() {
+  kubectl get deployments -n longhorn-system 2>/dev/null | grep -v 'READY.*[0-9]/[0-9]' >/dev/null
+  return $?
+}
+
+# Funzione per verificare lo stato dei DaemonSets
+check_daemonsets() {
+  kubectl get daemonsets -n longhorn-system 2>/dev/null | grep -v 'READY.*[0-9]/[0-9]' >/dev/null
+  return $?
+}
+
+# Funzione per verificare lo stato dei Engine Images
+check_engineimages() {
+  kubectl get engineimages -n longhorn-system 2>/dev/null | grep -v 'ready' >/dev/null
+  return $?
+}
+
+# Funzione principale di attesa
+wait_for_longhorn() {
+  echo "Waiting for Longhorn to be ready..."
+  local timeout=300 # Timeout di 5 minuti (300 secondi)
+  local interval=10  # Intervallo di controllo di 10 secondi
+  local elapsed=0
+
+  while true; do
+    if check_pods && check_deployments && check_daemonsets && check_engineimages; then
+      echo "Longhorn is ready!"
+      return 0
+    elif [ $elapsed -ge $timeout ]; then
+      echo "Timeout: Longhorn is not ready after $timeout seconds."
+      return 1
+    else
+      sleep $interval
+      elapsed=$((elapsed + interval))
+    fi
+  done
+}
+
+
 #NET=10.0.0 # internal subnet of virtual machines
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
@@ -26,9 +72,9 @@ sudo swapoff -a
 #sudo apt update -qq
 #sudo apt upgrade -qqy
 #sudo snap refresh
-sudo apt update -qq
-sudo apt install -qqy nfs-common
-sudo snap install --stable snapd
+sudo apt update -qq > /dev/null 2>&1
+sudo apt install -qqy nfs-common > /dev/null 2>&1
+sudo snap install --stable snapd > /dev/null 2>&1
 sudo snap install microk8s --classic --stable
 #sudo snap install microk8s --channel=latest/stable --classic
 #https://github.com/canonical/microk8s/issues/4361
@@ -70,5 +116,11 @@ sudo helm install longhorn longhorn/longhorn --namespace longhorn-system --set c
 
 echo "Waiting for microk8s to be ready..."
 sudo microk8s status --wait-ready > /dev/null 2>&1
+
+# Esegui la funzione di attesa
+wait_for_longhorn
+
+
+
 #sudo cp config/hosts /etc/hosts
 ##sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'

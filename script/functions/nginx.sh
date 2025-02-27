@@ -115,13 +115,13 @@ function create_nginx_lb() {
 }
 
 function destroy_nginx_lb() {
-    multipass stop --force $LOAD_BALANCE_HOSTNAME > /dev/null 2>&1
-    multipass delete --purge $LOAD_BALANCE_HOSTNAME > /dev/null 2>&1
-    multipass purge > /dev/null 2>&1
-
     remove_machine_from_dns $LOAD_BALANCE_HOSTNAME
     remove_machine_from_dns demo-go
     remove_machine_from_dns demo-php
     remove_machine_from_dns static-site
-    restart_dns_service
+
+    restart_dns_service    
+    multipass stop --force $LOAD_BALANCE_HOSTNAME > /dev/null 2>&1
+    multipass delete --purge $LOAD_BALANCE_HOSTNAME > /dev/null 2>&1
+    multipass purge > /dev/null 2>&1
 }

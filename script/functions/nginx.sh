@@ -5,6 +5,7 @@ set -e
 launch_nginx_vm() {
   multipass launch "$DEFAULT_UBUNTU_VERSION" -m 2Gb -d 5Gb -c 1 -n "$LOAD_BALANCE_HOSTNAME"
   add_machine_to_dns "$LOAD_BALANCE_HOSTNAME"
+  restart_dns_service
 }
 
 # Function to generate Nginx config
@@ -52,6 +53,7 @@ add_nginx_dns_entries() {
   add_machine_to_dns "mongodb" "$VM_IP"
   add_machine_to_dns "pgadmin" "$VM_IP"
   add_machine_to_dns "kibana" "$VM_IP"
+  restart_dns_service
 }
 
 # Function to generate MOTD
@@ -121,4 +123,5 @@ function destroy_nginx_lb() {
     remove_machine_from_dns demo-go
     remove_machine_from_dns demo-php
     remove_machine_from_dns static-site
+    restart_dns_service
 }

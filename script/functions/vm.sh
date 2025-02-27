@@ -242,6 +242,7 @@ function main_vm_setup(){
     create_vm $VM_MAIN_NAME "$mainRam" "$mainHddGb" "$mainCpu"
 
     add_machine_to_dns $VM_MAIN_NAME
+    restart_dns_service
 
     # Copia il file sulla VM
     msg_info "=== Task 1: ${VM_MAIN_NAME} Setup ==="

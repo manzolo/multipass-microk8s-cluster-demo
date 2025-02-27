@@ -50,10 +50,6 @@ EOF
     msg_warn "Add $machine_name.$DNS_SUFFIX -> $machine_ip to DNS on $DNS_VM_NAME"
     multipass exec "$DNS_VM_NAME" -- sudo bash -c "echo 'address=/$machine_name.$DNS_SUFFIX/$machine_ip' >> /etc/dnsmasq.d/local.conf"
 
-    # Riavvia dnsmasq per applicare le modifiche
-    msg_warn "Restart dnsmasq on $DNS_VM_NAME"
-    multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
-
     msg_info "$machine_name.$DNS_SUFFIX added successfully to DNS on $DNS_VM_NAME!"
 }
 
@@ -71,11 +67,13 @@ remove_machine_from_dns() {
     # Rimuovi la voce DNS dal file di configurazione di dnsmasq
     multipass exec "$DNS_VM_NAME" -- sudo sed -i "/address=\/$machine_name.$DNS_SUFFIX\//d" /etc/dnsmasq.d/local.conf
 
+    msg_warn "$machine_name.$DNS_SUFFIX removed from $DNS_VM_NAME!"
+}
+
+restart_dns_service() {
     # Riavvia dnsmasq per applicare le modifiche
     msg_info "Riavvio di dnsmasq su $DNS_VM_NAME"
     multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
-
-    msg_warn "$machine_name.$DNS_SUFFIX removed from $DNS_VM_NAME!"
 }
 
 function add_dns_to_host() {

@@ -240,6 +240,7 @@ function configure_node_vm() {
     wait_for_microk8s_ready "$node_name"
 
     add_machine_to_dns "$node_name"
+    restart_dns_service
     multipass info "$node_name"
 
     multipass start "$VM_MAIN_NAME"
@@ -255,6 +256,7 @@ function remove_node() {
     check_command_exists "multipass"
 
     remove_machine_from_dns $vm_name
+    restart_dns_service
 
     run_command_on_node $VM_MAIN_NAME "microk8s remove-node $vm_name"
 

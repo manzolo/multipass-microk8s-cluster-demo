@@ -2,9 +2,71 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: static-site
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: static-site-html
+  namespace: static-site
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Cluster Services Index</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                margin: 20px;
+                background-color: #f4f4f4;
+            }
+            h1 {
+                text-align: center;
+                color: #333;
+                margin-bottom: 30px;
+            }
+            ul {
+                list-style-type: none;
+                padding: 0;
+                max-width: 600px;
+                margin: 0 auto;
+            }
+            li {
+                background-color: #fff;
+                margin-bottom: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 15px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            a {
+                text-decoration: none;
+                color: #007bff;
+                font-weight: bold;
+            }
+            a:hover {
+                text-decoration: underline;
+                color: #0056b3;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Cluster Services Index</h1>
+        <ul>
+            <li><a href="http://demo-go.${DNS_SUFFIX}">Go Demo</a></li>
+            <li><a href="http://demo-php.${DNS_SUFFIX}">PHP Demo</a></li>
+            <li><a href="http://static-site.${DNS_SUFFIX}">Static Site</a></li>
+            <li><a href="http://phpmyadmin.${DNS_SUFFIX}">phpMyAdmin</a></li>
+            <li><a href="http://mongodb.${DNS_SUFFIX}">MongoDB</a></li>
+            <li><a href="http://pgadmin.${DNS_SUFFIX}">pgAdmin</a></li>
+            <li><a href="http://kibana.${DNS_SUFFIX}">Kibana</a></li>
+        </ul>
+    </body>
+    </html>
 
 ---
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -24,7 +86,6 @@ spec:
               number: 80
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,9 +106,14 @@ spec:
         image: nginx:alpine
         ports:
         - containerPort: 80
-
+        volumeMounts:
+        - name: html-volume
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: html-volume
+        configMap:
+          name: static-site-html
 ---
-
 apiVersion: v1
 kind: Service
 metadata:

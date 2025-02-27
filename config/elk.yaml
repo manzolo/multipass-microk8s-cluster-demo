@@ -20,11 +20,13 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      volumes:
-      - name: elasticsearch-data
-        hostPath:
-          path: /tmp/elasticsearch-data # Modifica con un percorso valido
-          type: DirectoryOrCreate
+      initContainers:
+      - name: fix-permissions
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
       containers:
       - name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
@@ -50,6 +52,15 @@ spec:
           limits:
             cpu: "500m"
             memory: "1Gi"
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      storageClassName: longhorn # Assicurati che sia la tua storageClassName Longhorn
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
 ---
 # Service Headless per Elasticsearch
 apiVersion: v1
@@ -91,6 +102,10 @@ spec:
         env:
         - name: ELASTICSEARCH_HOSTS
           value: "http://elasticsearch:9200"
+        - name: ELASTICSEARCH_USERNAME
+          value: kibana_system
+        - name: ELASTICSEARCH_PASSWORD
+          value: changeme
         ports:
         - containerPort: 5601
           name: http

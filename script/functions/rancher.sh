@@ -139,10 +139,10 @@ function create_rancher() {
 }
 
 function destroy_rancher() {
+    remove_machine_from_dns $RANCHER_HOSTNAME
+    restart_dns_service
+
     multipass stop --force ${RANCHER_HOSTNAME} > /dev/null 2>&1
     multipass delete --purge ${RANCHER_HOSTNAME} > /dev/null 2>&1
     multipass purge > /dev/null 2>&1
-
-    remove_machine_from_dns $RANCHER_HOSTNAME
-    restart_dns_service
 }

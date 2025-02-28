@@ -6,4 +6,5 @@
 
 # Documentation
 
+* Navigate to http://phpmyadmin.loc
 

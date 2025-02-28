@@ -26,9 +26,13 @@ Choose your test stack
 
 * ![DNS](dns/README.md)
 
-## Add nginx load balancer vm to test your stack 
+## Add nginx load balancer vm to test your stack (ex. using http://demo-go.loc)
 
 * ![Nginx Load Balancer](nginx-lb/README.md)
+
+## Enter on main vm cluster
+![Shell on main vm menu](images/shell_main.png)
+![Shell](images/shell_main_enter.png)
 
 
 ## Available Stacks

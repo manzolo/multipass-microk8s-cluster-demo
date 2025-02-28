@@ -6,5 +6,5 @@
 
 # Documentation
 
-This directory contains documentation for various stacks.
+* "Add DNS Configuration": add virtual machine server to your DNS host to resolve multipass hostnames
 

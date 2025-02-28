@@ -28,7 +28,8 @@ Choose your test stack
 
 ## Add nginx load balancer vm to test your stack 
 
-* ![Nginx Load Balancer](dns/README.md)
+* ![Nginx Load Balancer](nginx-lb/README.md)
+
 
 ## Available Stacks
 ![Stack menu](images/stack_menu.png)

@@ -4,7 +4,7 @@
 
 ![Mariadb](menu.png)
 
-# Documentation
+# Screenshot
 
 * Navigate to http://phpmyadmin.loc
 

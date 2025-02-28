@@ -3,7 +3,6 @@ kind: Namespace
 metadata:
   name: postgres
 ---
-# Secret per la password di root di PostgreSQL (password "password" codificata in base64: cGFzc3dvcmQ=)
 apiVersion: v1
 kind: Secret
 metadata:
@@ -14,7 +13,6 @@ data:
   POSTGRES_USER: cG9zdGdyZXM= # postgres
   POSTGRES_PASSWORD: cGFzc3dvcmQ= # password
 ---
-# Service Headless per il StatefulSet di PostgreSQL
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,7 +28,6 @@ spec:
     - port: 5432
       targetPort: 5432
 ---
-# StatefulSet di PostgreSQL con volumeClaimTemplates
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -79,13 +76,18 @@ spec:
   - metadata:
       name: postgres-data
     spec:
-      storageClassName: longhorn # o il tuo storage provider
+      storageClassName: microk8s-hostpath
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
           storage: 2Gi
+      # Se vuoi utilizzare Longhorn di nuovo, decommenta questa sezione e commenta la precedente.
+      # storageClassName: longhorn
+      # accessModes: ["ReadWriteOnce"]
+      # resources:
+      #   requests:
+      #     storage: 2Gi
 ---
-# Deployment di pgAdmin (app stateless, scalabile)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -120,7 +122,6 @@ spec:
             cpu: "300m"
             memory: "512Mi"
 ---
-# Service per pgAdmin (esposto tramite NodePort)
 apiVersion: v1
 kind: Service
 metadata:
@@ -136,7 +137,6 @@ spec:
       protocol: TCP
       nodePort: 31013
 ---
-# Ingress per accedere a pgAdmin tramite hostname
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

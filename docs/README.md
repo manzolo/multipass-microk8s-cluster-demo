@@ -9,7 +9,7 @@ cd multipass-microk8s-cluster-demo
 
 ## Menu
 
-- ![Main menu](images/menu.png)
+![Main menu](images/menu.png)
 
 # Documentation
 
@@ -19,7 +19,7 @@ Choose your test stack
 
 # Installation
 
-* ![Install](images/install.png)
+![Install](images/install.png)
 - ![Install log](INSTALL_LOG.md)
 
 ## Configure DNS 

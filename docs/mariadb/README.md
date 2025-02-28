@@ -1,10 +1,13 @@
-# Mariadb stack
+# MariaDB Stack Deployment
 
 ## Menu
 
-![Mariadb](menu.png)
+![MariaDB](menu.png)
 
-# Screenshot
+## Screenshot
 
-* Navigate to http://phpmyadmin.loc
+![MariaDB Web Interface](html.png)
 
+**Accessing phpMyAdmin:**
+
+* If a DNS server is configured, navigate to http://phpmyadmin.loc in your web browser.

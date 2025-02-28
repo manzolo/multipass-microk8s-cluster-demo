@@ -1,11 +1,10 @@
-# Local DNS Server
+# Local DNS Server Configuration
 
 ## Menu
 
 ![DNS Server](menu.png)
 
-# Documentation
+## Documentation
 
-* "Add DNS Configuration": add virtual machine server to your DNS host to resolve multipass hostnames
-
-* "Remove DNS Configuration": Remove dns server configuration from your DNS host
+* **Add DNS Configuration:** This option adds a virtual machine server configuration to your DNS host, enabling resolution of Multipass hostnames.
+* **Remove DNS Configuration:** This option removes the DNS server configuration from your DNS host.

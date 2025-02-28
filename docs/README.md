@@ -24,6 +24,8 @@ This directory contains documentation for deploying and managing different appli
 
 * [MariaDB Documentation](mariadb/README.md)
 * [PostgreSQL Documentation](postgres/README.md)
+* [MongoDB Documentation](mongodb/README.md)
+* [ELK Documentation](elk/README.md)
 
 ## Cluster Installation
 

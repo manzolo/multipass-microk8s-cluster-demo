@@ -34,19 +34,16 @@ This directory contains documentation for deploying and managing different appli
     ![Install](images/install.png)
 
 2.  **Installation Log:**
-        ![immagine](https://user-images.githubusercontent.com/7722346/213332709-7f2fb680-e859-4ed1-a456-e271701aa3a5.png)
+    ![immagine](https://user-images.githubusercontent.com/7722346/213332709-7f2fb680-e859-4ed1-a456-e271701aa3a5.png)
 
-        ![immagine](https://user-images.githubusercontent.com/7722346/213332976-0762af52-85b9-4aa7-bb3c-a298e52048e7.png)
+    ![immagine](https://user-images.githubusercontent.com/7722346/213332976-0762af52-85b9-4aa7-bb3c-a298e52048e7.png)
 
-        ![immagine](https://user-images.githubusercontent.com/7722346/213333132-b66f43e4-a3bb-4501-b06e-3b4395130847.png)
+    ![immagine](https://user-images.githubusercontent.com/7722346/213333132-b66f43e4-a3bb-4501-b06e-3b4395130847.png)
+
     <details>
         <summary>Full Log</summary>
         
         $ ./create_kube_vms.sh
-        <pre>
-        <span style="background-color:#12488B">
-        <font color="#A2734C">Check prerequisites...</font>
-        <font color="#A2734C">Creating vms cluster</font>
         Script started at: 28/02/2025 23:09:25
         Checking prerequisites...
         Creating DNS VM: k8s-dns-server
@@ -328,7 +325,6 @@ This directory contains documentation for deploying and managing different appli
             "app_version": "1.0.0"
         }Testing PHP service:
         http://10.38.166.122:31002
-        <pre>
 
         {
             &quot;id&quot;: &quot;5577006791947779410&quot;,
@@ -348,7 +344,6 @@ This directory contains documentation for deploying and managing different appli
             &quot;ip&quot;: &quot;10.1.169.130&quot;,
             &quot;datetime&quot;: &quot;2023.01.21 00:38:35&quot;
         }
-        </pre>
 
     <details>    
     

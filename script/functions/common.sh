@@ -71,6 +71,11 @@ function retry_command {
     return 1
 }
 
+# Funzione per ottenere l'IP della vm
+get_vm_ip() {
+    vm_name=$1
+    echo $(multipass info "${vm_name}" | grep IPv4 | awk '{print $2}')
+}
 # Funzione per ottenere l'IP del nodo
 get_node_ip() {
     multipass info "${VM_MAIN_NAME}" | grep IPv4 | awk '{print $2}'

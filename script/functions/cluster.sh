@@ -80,6 +80,7 @@ test_services() {
 
 # Function to generate MOTD
 generate_main_vm_motd() {
+    vm_ip=$(get_vm_ip "$VM_MAIN_NAME")
     # Primo blocco: comandi per la gestione del cluster
     local MOTD_K8S_COMMANDS=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
@@ -129,6 +130,7 @@ $(tput setaf 1)$(tput bold)🔑 Show MicroK8s Dashboard Token:$(tput sgr0)
 $(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token | grep "token:" | awk '{print "'\$2'"}'$(tput sgr0)
 $(tput setaf 2)$(tput bold)🚀 Start dashboard:$(tput sgr0)
 $(tput setaf 8)microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443 --address 0.0.0.0$(tput sgr0)
+$(tput setaf 5)https://${vm_ip}:10443/#/login$(tput sgr0)
 $(tput setaf 5)https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login$(tput sgr0)
 $(tput sgr0)
 EOF

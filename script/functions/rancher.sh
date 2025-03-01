@@ -23,7 +23,8 @@ create_and_configure_rancher_vm() {
     install_docker "$vm_name"
     start_rancher "$vm_name"
     show_rancher_info "$vm_name"
-    add_motd_rancher "$vm_name"
+    vm_ip=$(get_vm_ip "$vm_name")
+    add_motd_rancher "$vm_name" "$vm_ip"
 }
 
 # Function to configure DNS resolution
@@ -72,6 +73,7 @@ show_rancher_info() {
 # Function to add MOTD for Rancher
 add_motd_rancher() {
     local vm_name=$1
+    local vm_ip=$2
     local MOTD_COMMANDS=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
 $(tput setaf 6)$(tput bold)  Rancher Management Commands
@@ -88,9 +90,12 @@ $(tput setaf 5)$(tput bold)🔑 Show rancher bootstrap password:$(tput sgr0)
 $(tput setaf 5)docker logs rancher 2>&1 | grep "Bootstrap Password:"$(tput sgr0)
 
 Rancher homepage:
+
+https://${vm_ip}
 https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}
 
 Use the following link to complete the Rancher setup:
+https://${vm_ip}/dashboard/?setup=BOOTSTRAP_PASSWORD_HERE
 https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=BOOTSTRAP_PASSWORD_HERE
 EOF
     )
@@ -122,6 +127,8 @@ wait_for_rancher_password() {
         if [[ -n "$PASSWORD" ]]; then
             local RANCHER_URL="https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=$PASSWORD"
             msg_info "Use the following link to complete the Rancher setup:"
+            vm_ip=$(get_vm_ip "${RANCHER_HOSTNAME}")
+            msg_warn "https://${vm_ip}/dashboard/?setup=${PASSWORD}"
             msg_warn "$RANCHER_URL"
             break
         fi

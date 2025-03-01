@@ -21,7 +21,10 @@ From an idea of [Olawepo Olayemi](https://sejuba.medium.com/installing-kubernete
 ## Screenshot
 ![Shell](docs/images/shell_main_enter.png)
 ![MariaDB](docs/mariadb/html.png)
+![Rancher](docs/rancher/setup-complete.png)
 ![MongoDB](docs/mongodb/html.png)
 ![ELK](docs/elk/kibana-dashboard.png)
 ![Postgres](docs/postgres/html.png)
+![Kubernetes dashboard](docs/images/k8s-dashboard.png)
 ![Cluster info](docs/images/cluster-info.png)
+

@@ -34,7 +34,7 @@ Accept self-signed certificate
     ![Rancher Add Generic Cluster Interface](generic.png)
 3.  Enter a name for your cluster.
     ![Rancher Set Cluster Name Interface](import.png)
-4.  Copy the generated command string.
+4.  **Copy the generated command string (use the second option, signed by an unknown authority).**
     ![Rancher Waiting for Import Completion](waiting.png)
 5.  Open a shell on your `k8s-main` node.
     ![Rancher Import Complete](import-complete.png)

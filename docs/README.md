@@ -25,7 +25,7 @@ This directory contains documentation for deploying and managing different appli
 * [MariaDB](mariadb/README.md)
 * [PostgreSQL](postgres/README.md)
 * [MongoDB](mongodb/README.md)
-* [ELK](elk/README.md)
+* [ELK](elk/README.md) (ELK requires more RAM; see documentation for details)
 
 ## Cluster Installation
 

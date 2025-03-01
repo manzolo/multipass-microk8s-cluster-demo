@@ -68,7 +68,6 @@ This directory contains documentation for deploying and managing different appli
 3.  <details>
         <summary>Useful Shell Commands</summary>
 
-        ```bash
         ================================================
           Kubernetes Cluster Management Commands
         ================================================
@@ -121,7 +120,7 @@ This directory contains documentation for deploying and managing different appli
         microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443 --address 0.0.0.0
 
         https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login
-        ```
+        
     </details>
 
 

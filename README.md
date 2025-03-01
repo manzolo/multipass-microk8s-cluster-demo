@@ -17,3 +17,11 @@ From an idea of [Olawepo Olayemi](https://sejuba.medium.com/installing-kubernete
 
 ## Demo video
 [![Watch demo on youtube](https://img.youtube.com/vi/60-j3D5CzHg/0.jpg)](https://www.youtube.com/watch?v=60-j3D5CzHg)
+
+## Screenshot
+![Shell](docs/images/shell_main_enter.png)
+![MariaDB](docs/mariadb/html.png)
+![MongoDB](docs/mongodb/html.png)
+![ELK](docs/elk/kibana-dashboard.png)
+![Postgres](docs/postgres/html.png)
+![Cluster info](docs/images/cluster-info.png)

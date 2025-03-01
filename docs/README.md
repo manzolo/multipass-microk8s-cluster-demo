@@ -367,8 +367,8 @@ This directory contains documentation for deploying and managing different appli
 
 ### Kubernetes Dashboard
 
-  ![Enable Kubernetes Dashboard](images/enable-k8s-dashbnoard.png)
-  ![Kubernetes Dashboard](images/k8s-dashbnoard.png)
+  ![Enable Kubernetes Dashboard](images/enable-k8s-dashboard.png)
+  ![Kubernetes Dashboard](images/k8s-dashboard.png)
 
 ## Accessing the Main Cluster VM
 

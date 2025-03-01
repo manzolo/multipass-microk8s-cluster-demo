@@ -327,22 +327,22 @@ This directory contains documentation for deploying and managing different appli
         http://10.38.166.122:31002
 
         {
-            &quot;id&quot;: &quot;5577006791947779410&quot;,
-            &quot;hostname&quot;: &quot;demo-go-c769ff578-8fwx7&quot;,
-            &quot;ip&quot;: &quot;10.1.36.66&quot;,
-            &quot;datetime&quot;: &quot;2023.01.21 00:38:32&quot;
+            "id": "5577006791947779410",
+            "hostname": "demo-go-c769ff578-8fwx7",
+            "ip": "10.1.36.66",
+            "datetime": "2023.01.21 00:38:32"
         }
         {
-            &quot;id&quot;: &quot;5577006791947779410&quot;,
-            &quot;hostname&quot;: &quot;demo-go-c769ff578-p6zqk&quot;,
-            &quot;ip&quot;: &quot;10.1.194.199&quot;,
-            &quot;datetime&quot;: &quot;2023.01.21 00:38:34&quot;
+            "id": "5577006791947779410",
+            "hostname": "demo-go-c769ff578-p6zqk",
+            "ip": "10.1.194.199",
+            "datetime": "2023.01.21 00:38:34"
         }
         {
-            &quot;id&quot;: &quot;5577006791947779410&quot;,
-            &quot;hostname&quot;: &quot;demo-go-c769ff578-zcdfh&quot;,
-            &quot;ip&quot;: &quot;10.1.169.130&quot;,
-            &quot;datetime&quot;: &quot;2023.01.21 00:38:35&quot;
+            "id": "5577006791947779410",
+            "hostname": "demo-go-c769ff578-zcdfh",
+            "ip": "10.1.169.130",
+            "datetime": "2023.01.21 00:38:35"
         }
 
     <details>    

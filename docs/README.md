@@ -20,12 +20,13 @@ This repository demonstrates how to set up a MicroK8s cluster and deploy various
 
 This directory contains documentation for deploying and managing different application stacks.
 
-**Select a stack to test:**
+**Select a stack:**
 
 * [MariaDB](mariadb/README.md)
 * [PostgreSQL](postgres/README.md)
 * [MongoDB](mongodb/README.md)
 * [ELK](elk/README.md) (requires more RAM; see documentation for details)
+* [Jenkins](jenkins/README.md)
 
 ## Cluster Installation
 

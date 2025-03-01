@@ -1,6 +1,3 @@
-Certo, il tuo script ha alcuni problemi che possono essere corretti per renderlo più robusto e funzionante. Ecco una versione migliorata con spiegazioni:
-Bash
-
 #!/bin/bash
 
 # Verifica se git è installato

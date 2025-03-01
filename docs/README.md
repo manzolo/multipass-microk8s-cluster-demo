@@ -7,7 +7,7 @@ This repository demonstrates how to set up a MicroK8s cluster and deploy various
 1.  **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/manzolo/multipass-microk8s-cluster-demo.git
+    git clone [https://github.com/manzolo/multipass-microk8s-cluster-demo.git](https://github.com/manzolo/multipass-microk8s-cluster-demo.git)
     cd multipass-microk8s-cluster-demo
     ./main.sh
     ```
@@ -51,6 +51,10 @@ This directory contains documentation for deploying and managing different appli
 
 * [Nginx Load Balancer Configuration](nginx-lb/README.md)
 
+### Rancher (for simplified Kubernetes management and application deployment)
+
+* [Rancher Configuration](rancher/README.md)
+
 ## Accessing the Main Cluster VM
 
 1.  **Main VM Shell Menu:**
@@ -60,6 +64,63 @@ This directory contains documentation for deploying and managing different appli
 2.  **Entering the Shell:**
 
     ![Shell](images/shell_main_enter.png)
+
+3.  **Useful Shell Commands:**
+
+    ```bash
+    ================================================
+      Kubernetes Cluster Management Commands
+    ================================================
+
+     Apply new configuration:
+    kubectl apply -f microk8s_demo_config/demo-go.yaml
+
+     Scale up to 20 demo-go pods:
+    kubectl scale deployment demo-go --replicas=20 -n demo-go
+
+     Scale up to 5 demo-php pods:
+    kubectl scale deployment demo-php --replicas=5 -n demo-php
+
+     Show demo-go pods rollout status:
+    kubectl rollout status deployment/demo-go -n demo-go
+
+     Show demo-php pods rollout status:
+    kubectl rollout status deployment/demo-php -n demo-php
+
+     Show demo-php pods:
+    kubectl get all -o wide -n demo-php
+
+     Show demo-go pods:
+    kubectl get all -o wide -n demo-go
+
+     Show mariadb pods:
+    kubectl get all -o wide -n mariadb
+    
+     Show postgres pods:
+    kubectl get all -o wide -n postgres 
+
+     Show elk pods:
+    kubectl get all -o wide -n elk
+
+    ️ Show node details:
+    kubectl get node
+
+    ================================================
+      Microk8s Dashboard
+    ================================================
+
+    ️ Enable dashboard:
+    microk8s enable community
+    microk8s enable dashboard-ingress --hostname ${VM_MAIN_NAME}.${DNS_SUFFIX} --allow 0.0.0.0/0
+
+     Show MicroK8s Dashboard Token:
+    kubectl describe secret -n kube-system microk8s-dashboard-token | grep "token:" | awk '{print $2}'
+
+     Start dashboard:
+    microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443 --address 0.0.0.0
+
+    https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login
+    ```
 
 ## Available Application Stacks
 

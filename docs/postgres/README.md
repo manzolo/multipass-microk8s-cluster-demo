@@ -1,6 +1,3 @@
-You've got a good start! Here's a refined version of your README, focusing on clarity, consistency, and a bit more user-friendliness:
-Markdown
-
 # PostgreSQL Stack Deployment
 
 ## Menu

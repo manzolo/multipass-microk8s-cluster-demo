@@ -12,7 +12,7 @@ From an idea of [Olawepo Olayemi](https://sejuba.medium.com/installing-kubernete
 * Ubuntu 24.04 
 * Microk8s (1.31/stable)
 
-## Try yourself
+## Try it yourself
 * [Main menu](docs/README.md)
 
 ## Demo video

@@ -80,7 +80,8 @@ test_services() {
 
 # Function to generate MOTD
 generate_main_vm_motd() {
-    local MOTD_COMMANDS=$(cat <<EOF
+    # Primo blocco: comandi per la gestione del cluster
+    local MOTD_K8S_COMMANDS=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
 $(tput setaf 6)$(tput bold)  Kubernetes Cluster Management Commands
 $(tput setaf 6)$(tput bold)================================================
@@ -112,7 +113,11 @@ $(tput setaf 8)kubectl get all -o wide -n mariadb$(tput sgr0)
 
 $(tput setaf 9)$(tput bold)🖥️ Show node details:$(tput sgr0)
 $(tput setaf 9)kubectl get node$(tput sgr0)
+EOF
+    )
 
+    # Secondo blocco: informazioni e comandi per il dashboard di Microk8s
+    local MOTD_DASHBOARD=$(cat <<EOF
 $(tput setaf 6)$(tput bold)================================================
 $(tput setaf 6)$(tput bold)  Microk8s Dashboard
 $(tput setaf 6)$(tput bold)================================================
@@ -120,25 +125,32 @@ $(tput sgr0)
 $(tput setaf 9)$(tput bold)🖥️ Enable dashboard:$(tput sgr0)
 $(tput setaf 8)microk8s enable community$(tput sgr0)
 $(tput setaf 8)microk8s enable dashboard-ingress --hostname ${VM_MAIN_NAME}.${DNS_SUFFIX} --allow 0.0.0.0/0$(tput sgr0)
-
 $(tput setaf 1)$(tput bold)🔑 Show MicroK8s Dashboard Token:$(tput sgr0)
-$(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token | grep "token:" | awk '{print \$'2'}'$(tput sgr0)
-
+$(tput setaf 1)kubectl describe secret -n kube-system microk8s-dashboard-token | grep "token:" | awk '{print \$2}'$(tput sgr0)
 $(tput setaf 2)$(tput bold)🚀 Start dashboard:$(tput sgr0)
 $(tput setaf 8)microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443 --address 0.0.0.0$(tput sgr0)
-
 $(tput setaf 5)https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login$(tput sgr0)
-
 $(tput sgr0)
 EOF
     )
 
-    msg_warn "Add ${VM_MAIN_NAME} MOTD"
-    multipass exec "${VM_MAIN_NAME}" -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
+    msg_warn "Aggiungo MOTD per ${VM_MAIN_NAME} in /etc/update-motd.d/"
+
+    # Creazione del primo script: 10-k8s-commands
+    multipass exec "${VM_MAIN_NAME}" -- sudo tee /etc/update-motd.d/991-k8s-commands > /dev/null <<EOF
+#!/bin/bash
 echo ""
-echo "Commands to run on ${VM_MAIN_NAME}:"
-echo "$MOTD_COMMANDS"
+echo "${MOTD_K8S_COMMANDS}"
 EOF
+
+    # Creazione del secondo script: 20-microk8s-dashboard
+    multipass exec "${VM_MAIN_NAME}" -- sudo tee /etc/update-motd.d/992-microk8s-dashboard > /dev/null <<EOF
+#!/bin/bash
+echo "${MOTD_DASHBOARD}"
+EOF
+
+    # Imposta i permessi eseguibili per entrambi gli script
+    multipass exec "${VM_MAIN_NAME}" -- sudo chmod +x /etc/update-motd.d/991-k8s-commands /etc/update-motd.d/992-microk8s-dashboard
 }
 
 # Function to scale and rollout deployments

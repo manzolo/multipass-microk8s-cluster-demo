@@ -1,0 +1,175 @@
+# Namespace per Redis e Redis Commander
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redis
+---
+# ConfigMap per Redis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: redis
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    port 6379
+    requirepass password
+---
+# Secret per la password di Redis
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+  namespace: redis
+type: Opaque
+stringData:
+  redis-password: password
+---
+# Deployment per Redis
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:6.2-alpine
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-config
+          mountPath: /usr/local/etc/redis
+        - name: redis-data
+          mountPath: /data
+        command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-data-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: redis
+spec:
+  storageClassName: microk8s-hostpath # o longhorn
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Service per Redis
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+---
+# Deployment per Redis Commander
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-commander
+  namespace: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-commander
+  template:
+    metadata:
+      labels:
+        app: redis-commander
+    spec:
+      containers:
+      - name: redis-commander
+        image: ghcr.io/joeferner/redis-commander
+        ports:
+        - containerPort: 8081
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: redis-password
+        - name: K8S_SIGTERM
+          value: "1"
+        livenessProbe:
+          httpGet:
+            path: /favicon.png
+            port: 8081
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512M"
+        securityContext:
+          runAsNonRoot: true
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+---
+# Service per Redis Commander (NodePort per accesso esterno)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-commander
+  namespace: redis
+spec:
+  type: NodePort
+  ports:
+  - port: 8081
+    targetPort: 8081
+    nodePort: 31090  # Porta esposta sul nodo
+  selector:
+    app: redis-commander
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redis-commander-ingress
+  namespace: redis
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - host: redis-commander.loc # Sostituisci con il tuo host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: redis-commander
+            port:
+              number: 8081

@@ -28,6 +28,7 @@ This directory contains documentation for deploying and managing different appli
 * [ELK](elk/README.md) (requires more RAM; see documentation for details)
 * [Jenkins](jenkins/README.md)
 * [RabbitMQ](rabbitmq/README.md)
+* [Redis](redis/README.md)
 
 ## Cluster Installation
 

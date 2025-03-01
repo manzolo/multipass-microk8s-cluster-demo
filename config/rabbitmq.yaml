@@ -67,14 +67,14 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - port: 5672
-    targetPort: 5672
-    nodePort: 31672
-    name: rabbitmq
   - port: 15672
     targetPort: 15672
     nodePort: 31567
     name: management
+  - port: 5672
+    targetPort: 5672
+    nodePort: 31672
+    name: rabbitmq
   selector:
     app: rabbitmq
 ---

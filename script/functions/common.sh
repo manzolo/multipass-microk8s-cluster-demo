@@ -117,6 +117,12 @@ function print_service_table() {
 
     print_service_row "kibana" "elk"
 
+    print_service_row "redis-commander" "redis"
+
+    print_service_row "rabbitmq" "rabbitmq"
+
+    print_service_row "jenkins" "jenkins"
+
     # Fine della tabella
     printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
     echo

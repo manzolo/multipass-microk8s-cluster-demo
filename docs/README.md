@@ -345,7 +345,7 @@ This directory contains documentation for deploying and managing different appli
             "datetime": "2023.01.21 00:38:35"
         }
 
-    <details>    
+    </details>  
     
 3.  **Cluster Information:**
 

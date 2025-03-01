@@ -34,13 +34,12 @@ This directory contains documentation for deploying and managing different appli
     ![Install](images/install.png)
 
 2.  **Installation Log:**
+    <details>
     ![immagine](https://user-images.githubusercontent.com/7722346/213332709-7f2fb680-e859-4ed1-a456-e271701aa3a5.png)
 
     ![immagine](https://user-images.githubusercontent.com/7722346/213332976-0762af52-85b9-4aa7-bb3c-a298e52048e7.png)
 
     ![immagine](https://user-images.githubusercontent.com/7722346/213333132-b66f43e4-a3bb-4501-b06e-3b4395130847.png)
-
-    <details>
         <summary>Full Log</summary>
         
         $ ./create_kube_vms.sh

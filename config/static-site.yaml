@@ -22,7 +22,7 @@ data:
                 margin: 20px;
                 background-color: #f4f4f4;
             }
-            h1 {
+            h1, h2 {
                 text-align: center;
                 color: #333;
                 margin-bottom: 30px;
@@ -54,6 +54,7 @@ data:
     </head>
     <body>
         <h1>Cluster Services Index</h1>
+        <h2>(Nginx load balance service required)</h2>
         <ul>
             <li><a href="http://demo-go.${DNS_SUFFIX}">Go Demo</a></li>
             <li><a href="http://demo-php.${DNS_SUFFIX}">PHP Demo</a></li>

@@ -68,7 +68,7 @@ This directory contains documentation for deploying and managing different appli
         Configuring DNS resolver on k8s-main to use k8s-dns-server (10.38.166.247)
         Add k8s-main.loc -> 10.38.166.122 to DNS on k8s-dns-server
         k8s-main.loc added successfully to DNS on k8s-dns-server!
-        Riavvio di dnsmasq su k8s-dns-server
+        Restarting dnsmasq on k8s-dns-server
         === Task 1: k8s-main Setup ===
         microk8s (1.32/stable) v1.32.1 from Canonical✓ installed
         snap "microk8s" is already installed, see 'snap help refresh'
@@ -105,7 +105,7 @@ This directory contains documentation for deploying and managing different appli
         Configuring DNS resolver on k8s-node1 to use k8s-dns-server (10.38.166.247)
         Add k8s-node1.loc -> 10.38.166.169 to DNS on k8s-dns-server
         k8s-node1.loc added successfully to DNS on k8s-dns-server!
-        Riavvio di dnsmasq su k8s-dns-server
+        Restarting dnsmasq on k8s-dns-server
         Name:           k8s-node1
         State:          Running
         Snapshots:      0
@@ -140,7 +140,7 @@ This directory contains documentation for deploying and managing different appli
         Configuring DNS resolver on k8s-node2 to use k8s-dns-server (10.38.166.247)
         Add k8s-node2.loc -> 10.38.166.44 to DNS on k8s-dns-server
         k8s-node2.loc added successfully to DNS on k8s-dns-server!
-        Riavvio di dnsmasq su k8s-dns-server
+        Restarting dnsmasq on k8s-dns-server
         Name:           k8s-node2
         State:          Running
         Snapshots:      0

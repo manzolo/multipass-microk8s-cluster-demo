@@ -108,19 +108,18 @@ sudo snap alias microk8s.kubectl k
 #microk8s enable dns
 #microk8s enable dashboard
 #microk8s enable helm
+microk8s enable hostpath-storage
 
 #Longhorn storage
-helm repo add longhorn https://charts.longhorn.io
-sudo helm repo update
-sudo helm install longhorn longhorn/longhorn --namespace longhorn-system --set csi.kubeletRootDir="/var/snap/microk8s/common/var/lib/kubelet" --create-namespace
+#helm repo add longhorn https://charts.longhorn.io
+#sudo helm repo update
+#sudo helm install longhorn longhorn/longhorn --namespace longhorn-system --set csi.kubeletRootDir="/var/snap/microk8s/common/var/lib/kubelet" --create-namespace --version 1.5.1
 
 echo "Waiting for microk8s to be ready..."
 sudo microk8s status --wait-ready > /dev/null 2>&1
 
 # Esegui la funzione di attesa
-wait_for_longhorn
-
-
+#wait_for_longhorn
 
 #sudo cp config/hosts /etc/hosts
 ##sudo sh -c 'sudo microk8s config | sed -e "s|server: https://$OUT:16443|server: https://$NET.1:16443|" > /etc/kubeconfig'

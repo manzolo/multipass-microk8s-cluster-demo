@@ -56,11 +56,17 @@ spec:
   - metadata:
       name: elasticsearch-data
     spec:
-      storageClassName: longhorn # Assicurati che sia la tua storageClassName Longhorn
+      storageClassName: microk8s-hostpath
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
           storage: 5Gi
+      # Se vuoi utilizzare Longhorn di nuovo, decommenta questa sezione e commenta la precedente.
+      # storageClassName: longhorn
+      # accessModes: ["ReadWriteOnce"]
+      # resources:
+      #   requests:
+      #     storage: 5Gi
 ---
 # Service Headless per Elasticsearch
 apiVersion: v1

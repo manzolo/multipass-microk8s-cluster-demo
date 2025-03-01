@@ -5,6 +5,7 @@
 ![Rancher Menu](menu.png)
 ![Rancher Installation](install.png)
 ![Rancher Initial Setup](setup.png)
+![Rancher shell](shell.png)
 
 **Accessing Rancher without DNS:**
 

@@ -365,6 +365,10 @@ This directory contains documentation for deploying and managing different appli
 
 * [Rancher Configuration](rancher/README.md)
 
+### Kubernetes Dashboard ()
+
+* [Kubernetes Dashboard](images/enable-k8s-dashbnoard.png)
+
 ## Accessing the Main Cluster VM
 
 1.  **Main VM Shell Menu:**

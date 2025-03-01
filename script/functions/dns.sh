@@ -3,12 +3,12 @@ add_machine_to_dns() {
     local machine_name=$1
     local machine_ip=$2  # Secondo parametro opzionale: IP della macchina
 
-    DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+    DNS_IP=$(get_vm_ip "$DNS_VM_NAME")
 
     # Se l'IP non è fornito, prova a ottenerlo automaticamente (solo se è una VM Multipass)
     if [ -z "$machine_ip" ]; then
         if multipass list | grep -q "$machine_name"; then
-            machine_ip=$(multipass info "$machine_name" | grep IPv4 | awk '{print $2}')
+            machine_ip=$(get_vm_ip "$machine_name")
             if [ -z "$machine_ip" ]; then
                 msg_error "Unable to obtain $machine_name IP"
                 return 1
@@ -72,12 +72,12 @@ remove_machine_from_dns() {
 
 restart_dns_service() {
     # Riavvia dnsmasq per applicare le modifiche
-    msg_info "Riavvio di dnsmasq su $DNS_VM_NAME"
+    msg_info "Restarting dnsmasq on $DNS_VM_NAME"
     multipass exec "$DNS_VM_NAME" -- sudo systemctl restart dnsmasq
 }
 
 function add_dns_to_host() {
-    DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+    DNS_IP=$(get_vm_ip "$DNS_VM_NAME")
     CONF_DIR="/etc/systemd/resolved.conf.d"
     CONF_FILE="$CONF_DIR/multipass-dns.conf"
 
@@ -133,7 +133,7 @@ create_dns_vm() {
 
 # Function to install and configure dnsmasq
 install_dnsmasq() {
-    local _DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+    local _DNS_IP=$(get_vm_ip "$DNS_VM_NAME")
 
     msg_info "Installing dnsmasq on $DNS_VM_NAME"
 

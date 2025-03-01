@@ -45,7 +45,7 @@ EOF
 
 # Function to add DNS entries
 add_nginx_dns_entries() {
-  local VM_IP=$(multipass info "$LOAD_BALANCE_HOSTNAME" | grep IPv4 | awk '{print $2}')
+  local VM_IP=$(get_vm_ip "$LOAD_BALANCE_HOSTNAME")
   add_machine_to_dns "demo-go" "$VM_IP"
   add_machine_to_dns "demo-php" "$VM_IP"
   add_machine_to_dns "static-site" "$VM_IP"

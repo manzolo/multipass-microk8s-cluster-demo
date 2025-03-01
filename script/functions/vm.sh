@@ -234,7 +234,7 @@ EOF
     # Esegui lo script
     multipass exec $VM_MAIN_NAME -- /home/ubuntu/rollout_pods.sh
 
-    multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/rollout_pods.sh
+    #multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/rollout_pods.sh
     rm -rf script/remote/__rollout_pods.sh
 }
 

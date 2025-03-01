@@ -76,15 +76,11 @@ get_vm_ip() {
     vm_name=$1
     echo $(multipass info "${vm_name}" | grep IPv4 | awk '{print $2}')
 }
-# Funzione per ottenere l'IP del nodo
-get_node_ip() {
-    multipass info "${VM_MAIN_NAME}" | grep IPv4 | awk '{print $2}'
-}
 
 function print_service_table() {
 
     # Ottieni l'IP del nodo
-    IP=$(get_node_ip)
+    IP=$(get_vm_ip "$VM_MAIN_NAME")
 
     # Intestazione della tabella
     echo

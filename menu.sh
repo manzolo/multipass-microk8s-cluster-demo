@@ -57,6 +57,7 @@ cluster_management() {
                 echo
                 ;;
             "Shell on ${VM_MAIN_NAME}")
+                generate_main_vm_motd
                 multipass shell "${VM_MAIN_NAME}" && msg_info "Shell ${VM_MAIN_NAME} OK." || msg_error "Error shell ${VM_MAIN_NAME}."
                 press_any_key
                 echo

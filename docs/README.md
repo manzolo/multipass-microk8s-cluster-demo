@@ -35,6 +35,7 @@ This directory contains documentation for deploying and managing different appli
 
 2.  **Installation Log:**
     <details>
+    
     ![immagine](https://user-images.githubusercontent.com/7722346/213332709-7f2fb680-e859-4ed1-a456-e271701aa3a5.png)
 
     ![immagine](https://user-images.githubusercontent.com/7722346/213332976-0762af52-85b9-4aa7-bb3c-a298e52048e7.png)

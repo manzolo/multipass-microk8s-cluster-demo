@@ -78,60 +78,47 @@ get_node_ip() {
 
 function print_service_table() {
 
-# Ottieni l'IP del nodo
-IP=$(get_node_ip)
+    # Ottieni l'IP del nodo
+    IP=$(get_node_ip)
 
-# Intestazione della tabella
-echo
-echo
-printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
-printf "${BLUE}%-20s | %-15s | %-10s | %-30s${NC}\n" "Service Name" "Namespace" "NodePort" "URL"
-printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
+    # Intestazione della tabella
+    echo
+    echo
+    printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
+    printf "${BLUE}%-20s | %-15s | %-10s | %-30s${NC}\n" "Service Name" "Namespace" "NodePort" "URL"
+    printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
 
-# Funzione per stampare una riga della tabella
-print_service_row() {
-    local service_name=$1
-    local namespace=$2
-    local nodeport=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services "$service_name" -n "$namespace" 2>/dev/null)
-    if [ -n "$nodeport" ]; then
-        printf "%-20s | %-15s | %-10s | ${BLUE}http://$IP:$nodeport${NC}\n" "$service_name" "$namespace" "$nodeport"
-    else
-        printf "%-20s | %-15s | %-10s | ${BLUE}Service not deployed${NC}\n" "$service_name" "$namespace" "-"
-    fi
-}
+    # Funzione per stampare una riga della tabella
+    print_service_row() {
+        local service_name="$1"
+        local namespace="$2"
+        local nodeport=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" service "$service_name" -n "$namespace" 2>/dev/null)
 
-# Verifica e stampa i servizi
-if [ "$deploy_demo_go" = true ]; then
+        if [ -n "$nodeport" ]; then
+            printf "%-20s | %-15s | %-10s | ${BLUE}http://$IP:$nodeport${NC}\n" "$service_name" "$namespace" "$nodeport"
+        else
+            printf "%-20s | %-15s | %-10s | ${BLUE}Service not deployed${NC}\n" "$service_name" "$namespace" "-"
+        fi
+    }
+
+    # Verifica e stampa i servizi
     print_service_row "demo-go" "demo-go"
-fi
 
-if [ "$deploy_demo_php" = true ]; then
     print_service_row "demo-php" "demo-php"
-fi
 
-if [ "$deploy_static_site" = true ]; then
     print_service_row "static-site" "static-site"
-fi
 
-if [ "$deploy_mariadb" = true ]; then
     print_service_row "phpmyadmin" "mariadb"
-fi
 
-if [ "$deploy_mongodb" = true ]; then
     print_service_row "mongodb-express" "mongodb"
-fi
 
-if [ "$deploy_postgres" = true ]; then
     print_service_row "pgadmin" "postgres"
-fi
 
-if [ "$deploy_elk" = true ]; then
     print_service_row "kibana" "elk"
-fi
 
-# Fine della tabella
-printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
-echo
+    # Fine della tabella
+    printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
+    echo
 }
 
 function print_multipass_vm() {
@@ -195,7 +182,7 @@ function show_cluster_info() {
     local YELLOW='\033[1;33m'
     local BLUE='\033[0;34m'
     local NC='\033[0m' # No Color
-
+    
     print_multipass_vm
 
     print_cluster_info

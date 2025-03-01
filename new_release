@@ -1,36 +1,51 @@
 #!/bin/bash
 
 # Verifica se git è installato
-if ! command -v git &> /dev/null
-then
-  echo "gitnon è installato"
-  exit 1
+if ! command -v git &> /dev/null; then
+    echo "git non è installato"
+    exit 1
 fi
 
-if ! command -v git-flow &> /dev/null
-then
-  echo "git-flow non è installato"
-  exit 1
+# Verifica se git-flow è installato
+if ! command -v git-flow &> /dev/null; then
+    echo "git-flow non è installato"
+    exit 1
 fi
 
 # Ottieni l'ultimo tag
-last_tag=$(git describe --tags --abbrev=0)
+last_tag=$(git describe --tags --abbrev=0 2>/dev/null)
 
-# Estrai il numero di patch
-patch=$(echo $last_tag | awk -F. '{print $3}')
+# Verifica se è stato trovato un tag
+if [ -z "$last_tag" ]; then
+    echo "Nessun tag trovato nel repository."
+    exit 1
+fi
+
+# Analizza il tag per estrarre il numero di patch
+IFS='.' read -r major minor patch <<< "$last_tag"
+
+# Verifica se il tag è in formato semantico valido (major.minor.patch)
+if [ -z "$major" ] || [ -z "$minor" ] || [ -z "$patch" ] || ! [[ "$patch" =~ ^[0-9]+$ ]]; then
+    echo "Il tag '$last_tag' non è in un formato semantico valido (major.minor.patch)."
+    exit 1
+fi
 
 # Incrementa il numero di patch
 new_patch=$((patch + 1))
 
 # Crea il nuovo numero di versione
-new_version=$(echo $last_tag | sed "s/$patch/$new_patch/")
+new_version="$major.$minor.$new_patch"
 
-echo git flow release start "$new_version"
-read -n 1 -s -r -p "Press any key to continue..."
+echo "git flow release start $new_version"
+read -n 1 -s -r -p "Premi un tasto per continuare..."
 git flow release start "$new_version"
-echo git flow release finish "$new_version"
-read -n 1 -s -r -p "Press any key to continue..."
+
+echo "git flow release finish $new_version"
+read -n 1 -s -r -p "Premi un tasto per continuare..."
 git flow release finish "$new_version"
-echo git push origin main --tags
-read -n 1 -s -r -p "Press any key to continue..."
+
+echo "git push origin main --tags"
+read -n 1 -s -r -p "Premi un tasto per continuare..."
 git push origin main --tags
+
+echo "Versione $new_version rilasciata con successo."

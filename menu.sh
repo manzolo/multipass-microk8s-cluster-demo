@@ -507,6 +507,6 @@ main_menu() {
         esac
     done
 }
-generate_main_vm_motd
+
 # Execute the main menu
 main_menu

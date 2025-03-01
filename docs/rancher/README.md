@@ -35,12 +35,11 @@ Accept self-signed certificate
 3.  Enter a name for your cluster.
     ![Rancher Set Cluster Name Interface](import.png)
 4.  Copy the generated command string.
-    ![Rancher Import Complete](import-complete.png)
+    ![Rancher Waiting for Import Completion](waiting.png)
 5.  Open a shell on your `k8s-main` node.
+    ![Rancher Import Complete](import-complete.png)
 6.  Paste the command string to initiate the import process.
-
-![Rancher Waiting for Import Completion](waiting.png)
-![Rancher Setup Complete](setup-complete.png)
+    ![Rancher Setup Complete](setup-complete.png)
 
 **Accessing Rancher in your Browser:**
 

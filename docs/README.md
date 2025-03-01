@@ -7,7 +7,7 @@ This repository demonstrates how to set up a MicroK8s cluster and deploy various
 1.  **Clone the Repository:**
 
     ```bash
-    git clone [https://github.com/manzolo/multipass-microk8s-cluster-demo.git](https://github.com/manzolo/multipass-microk8s-cluster-demo.git)
+    git clone https://github.com/manzolo/multipass-microk8s-cluster-demo.git
     cd multipass-microk8s-cluster-demo
     ./main.sh
     ```

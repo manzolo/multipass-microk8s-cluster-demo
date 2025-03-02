@@ -93,61 +93,37 @@ get_vm_ip() {
 }
 
 function print_service_table() {
-
-    # Ottieni l'IP del nodo
     IP=$(get_vm_ip "$VM_MAIN_NAME")
 
-    # Intestazione della tabella
     echo
     echo
     printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
     printf "${BLUE}%-20s | %-15s | %-10s | %-30s${NC}\n" "Service Name" "Namespace" "NodePort" "URL"
     printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
 
-    # Verifica lo stato di k8s-main
     local main_state=$(multipass info k8s-main | grep "State:" | awk '{print $2}')
 
-    # Estrai le informazioni e formatta la tabella Kubernetes solo se k8s-main è in esecuzione
     if [[ "$main_state" == "Running" ]]; then
 
-        # Funzione per stampare una riga della tabella
-        print_service_row() {
-            local service_name="$1"
-            local namespace="$2"
-            local nodeport=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" service "$service_name" -n "$namespace" 2>/dev/null)
+        # Recupera tutti i servizi e le loro informazioni in un'unica chiamata, escludendo i namespace di sistema
+        local services=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get services --all-namespaces -o json --field-selector metadata.namespace!=kube-system,metadata.namespace!=kube-public,metadata.namespace!=kube-node-lease,metadata.namespace!=default)
 
+        # Estrai le informazioni usando jq
+        local service_info=$(echo "$services" | jq -r '.items[] | [.metadata.name, .metadata.namespace, .spec.ports[0].nodePort] | @tsv')
+
+        # Stampa le righe della tabella
+        while IFS=$'\t' read -r service_name namespace nodeport; do
             if [ -n "$nodeport" ]; then
                 printf "%-20s | %-15s | %-10s | ${BLUE}http://$IP:$nodeport${NC}\n" "$service_name" "$namespace" "$nodeport"
             else
                 printf "%-20s | %-15s | %-10s | ${BLUE}Service not deployed${NC}\n" "$service_name" "$namespace" "-"
             fi
-        }
+        done <<< "$service_info"
 
-        # Verifica e stampa i servizi
-        print_service_row "demo-go" "demo-go"
-
-        print_service_row "demo-php" "demo-php"
-
-        print_service_row "static-site" "static-site"
-
-        print_service_row "phpmyadmin" "mariadb"
-
-        print_service_row "mongodb-express" "mongodb"
-
-        print_service_row "pgadmin" "postgres"
-
-        print_service_row "kibana" "elk"
-
-        print_service_row "redis-commander" "redis"
-
-        print_service_row "rabbitmq" "rabbitmq"
-
-        print_service_row "jenkins" "jenkins"
     else
         printf "${YELLOW}k8s-main is not running. Kubernetes info not available.${NC}\n"
     fi
 
-    # Fine della tabella
     printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
     echo
 }

@@ -1,0 +1,126 @@
+#Depends on postgres - create database gitea first
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitea
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: gitea #attenzione che questo secret è nel namespace nextcloud
+type: Opaque
+data:
+  POSTGRES_PASSWORD: cGFzc3dvcmQ=
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea
+  namespace: gitea
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitea
+  template:
+    metadata:
+      labels:
+        app: gitea
+    spec:
+      containers:
+      - name: gitea
+        image: gitea/gitea:latest
+        env:
+        - name: DB_TYPE
+          value: postgres
+        - name: DB_HOST
+          value: postgres.postgres.svc.cluster.local # Sostituisci con l'indirizzo del tuo PostgreSQL
+        - name: DB_USER
+          value: postgres # Sostituisci con l'utente del tuo database
+        - name: DB_PASSWD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret # Sostituisci con il nome del tuo Secret
+              key: POSTGRES_PASSWORD
+        - name: DB_NAME
+          value: gitea # Sostituisci con il nome del tuo database
+        ports:
+        - containerPort: 3000
+        - containerPort: 22
+        volumeMounts:
+        - name: gitea-persistent-storage
+          mountPath: /data
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: gitea-persistent-storage
+        persistentVolumeClaim:
+          claimName: gitea-persistent-storage-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitea-persistent-storage-claim
+  namespace: gitea
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: microk8s-hostpath # Sostituisci con la tua StorageClass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea
+  namespace: gitea
+spec:
+  type: NodePort # Oppure ClusterIP con Ingress
+  selector:
+    app: gitea
+  ports:
+    - name: http # Aggiungi il nome della porta
+      port: 3000
+      targetPort: 3000
+      nodePort: 31053 # Sostituisci con una porta libera
+    - name: ssh # Aggiungi il nome della porta
+      port: 22
+      targetPort: 22
+      nodePort: 31054 # Sostituisci con una porta libera
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitea-ingress
+  namespace: gitea
+spec:
+  rules:
+  - host: gitea.loc # Sostituisci con il tuo host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gitea
+            port:
+              number: 3000

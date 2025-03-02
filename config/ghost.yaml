@@ -1,0 +1,107 @@
+#Depends on redis
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ghost
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost
+  namespace: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost
+  template:
+    metadata:
+      labels:
+        app: ghost
+    spec:
+      containers:
+      - name: ghost
+        image: ghost:latest
+        env:
+        - name: database__client
+          value: sqlite3 # Puoi usare MySQL o PostgreSQL se preferisci
+        - name: database__connection__filename
+          value: /var/lib/ghost/content/data/ghost.db
+        - name: redis__host
+          value: redis.redis.svc.cluster.local # Sostituisci con l'indirizzo del tuo Redis
+        - name: redis__port
+          value: "6379"
+        ports:
+        - containerPort: 2368
+        volumeMounts:
+        - name: ghost-persistent-storage
+          mountPath: /var/lib/ghost/content
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 2368
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 2368
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: ghost-persistent-storage
+        persistentVolumeClaim:
+          claimName: ghost-persistent-storage-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ghost-persistent-storage-claim
+  namespace: ghost
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: microk8s-hostpath # Sostituisci con la tua StorageClass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ghost
+  namespace: ghost
+spec:
+  type: NodePort # Oppure ClusterIP con Ingress
+  selector:
+    app: ghost
+  ports:
+    - name: http
+      port: 2368
+      targetPort: 2368
+      nodePort: 31055 # Sostituisci con una porta libera
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ghost-ingress
+  namespace: ghost
+spec:
+  rules:
+  - host: ghost.loc # Sostituisci con il tuo host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ghost
+            port:
+              number: 2368

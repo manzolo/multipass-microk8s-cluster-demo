@@ -1,0 +1,111 @@
+#Depends on redis
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grafana
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        env:
+        - name: GF_SERVER_HTTP_PORT
+          value: "3000"
+        - name: GF_DATABASE_TYPE
+          value: sqlite3
+        - name: GF_DATABASE_PATH
+          value: /var/lib/grafana/grafana.db
+        - name: GF_UNIFIED_CACHING_ENABLED
+          value: "true"
+        - name: GF_UNIFIED_CACHING_TYPE
+          value: redis
+        - name: GF_UNIFIED_CACHING_REDIS_ADDR
+          value: redis.redis.svc.cluster.local:6379 # Sostituisci con l'indirizzo del tuo Redis
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: grafana-persistent-storage
+          mountPath: /var/lib/grafana
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: grafana-persistent-storage
+        persistentVolumeClaim:
+          claimName: grafana-persistent-storage-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-persistent-storage-claim
+  namespace: grafana
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi # Aumenta la dimensione se necessario
+  storageClassName: microk8s-hostpath # Sostituisci con la tua StorageClass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: grafana
+spec:
+  type: NodePort # Oppure ClusterIP con Ingress
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      nodePort: 31110 # Sostituisci con una porta libera
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: grafana
+spec:
+  rules:
+  - host: grafana.loc # Sostituisci con il tuo host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000

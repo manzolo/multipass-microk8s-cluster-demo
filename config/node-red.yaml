@@ -1,0 +1,128 @@
+#Depends on mongodb
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: node-red
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secret
+  namespace: node-red
+type: Opaque
+data:
+  MONGO_INITDB_ROOT_USERNAME: cm9vdA== # root
+  MONGO_INITDB_ROOT_PASSWORD: cGFzc3dvcmQ= # password
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-red
+  namespace: node-red
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-red
+  template:
+    metadata:
+      labels:
+        app: node-red
+    spec:
+      containers:
+      - name: node-red
+        image: nodered/node-red:latest
+        env:
+        - name: FLOWS_CREDENTIALS_FILE
+          value: /data/flows_cred.json
+        - name: FLOWS_FILE
+          value: /data/flows.json
+        - name: NODE_RED_STORAGE_PATH
+          value: /data
+        - name: MONGODB_HOST
+          value: mongodb.mongodb.svc.cluster.local # Sostituisci con l'indirizzo del tuo MongoDB
+        - name: MONGODB_PORT
+          value: "27017"
+        - name: MONGODB_USER
+          value: root # Sostituisci con l'utente del tuo database
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret # Sostituisci con il nome del tuo Secret
+              key: MONGO_INITDB_ROOT_PASSWORD
+        - name: MONGODB_DATABASE
+          value: node-red # Sostituisci con il nome del tuo database
+        ports:
+        - containerPort: 1880
+        volumeMounts:
+        - name: node-red-persistent-storage
+          mountPath: /data
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 1880
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 1880
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: node-red-persistent-storage
+        persistentVolumeClaim:
+          claimName: node-red-persistent-storage-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: node-red-persistent-storage-claim
+  namespace: node-red
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi # Aumenta la dimensione se necessario
+  storageClassName: microk8s-hostpath # Sostituisci con la tua StorageClass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-red
+  namespace: node-red
+spec:
+  type: NodePort # Oppure ClusterIP con Ingress
+  selector:
+    app: node-red
+  ports:
+    - name: http
+      port: 1880
+      targetPort: 1880
+      nodePort: 31111 # Sostituisci con una porta libera
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: node-red-ingress
+  namespace: node-red
+spec:
+  rules:
+  - host: node-red.loc # Sostituisci con il tuo host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: node-red
+            port:
+              number: 1880

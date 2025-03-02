@@ -1,0 +1,118 @@
+#Depends on mariadb
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nextcloud
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+  namespace: nextcloud
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: cm9vdA==
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      containers:
+      - name: nextcloud
+        image: nextcloud:latest
+        env:
+        - name: MYSQL_HOST
+          value: mariadb.mariadb.svc.cluster.local # Sostituisci con l'indirizzo del tuo MariaDB
+        - name: MYSQL_USER
+          value: root # Sostituisci con l'utente del tuo database
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret # Sostituisci con il nome del tuo Secret
+              key: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_DATABASE
+          value: nextcloud # Sostituisci con il nome del tuo database
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nextcloud-persistent-storage
+          mountPath: /var/www/html
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: nextcloud-persistent-storage
+        persistentVolumeClaim:
+          claimName: nextcloud-persistent-storage-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-persistent-storage-claim
+  namespace: nextcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: microk8s-hostpath # Sostituisci con la tua StorageClass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+spec:
+  type: NodePort # Oppure ClusterIP con Ingress
+  selector:
+    app: nextcloud
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 31050 # Sostituisci con una porta libera
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nextcloud-ingress
+  namespace: nextcloud
+spec:
+  rules:
+  - host: nextcloud.loc # Sostituisci con il tuo host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nextcloud
+            port:
+              number: 80

@@ -131,6 +131,9 @@ deploy_mariadb=$deploy_mariadb
 deploy_mongodb=$deploy_mongodb
 deploy_postgres=$deploy_postgres
 deploy_elk=$deploy_elk
+deploy_redis=$deploy_redis
+deploy_rabbitmq=$deploy_rabbitmq
+deploy_jenkins=$deploy_jenkins
 DNS_SUFFIX=$DNS_SUFFIX
 export DNS_SUFFIX
 
@@ -217,6 +220,30 @@ function retry_command {
             retry_command "kubectl rollout status deployment/kibana -n elk"
         else
             echo "Skipping ELK deployment."
+        fi
+        
+        # Applica la configurazione per REDIS se deploy_redis è true
+        if [ "\$deploy_redis" = true ]; then
+            retry_command "cat /home/ubuntu/microk8s_demo_config/redis.yaml | envsubst | kubectl apply -f -"
+            retry_command "kubectl rollout status deployment/redis -n redis"
+        else
+            echo "Skipping REDIS deployment."
+        fi
+
+        # Applica la configurazione per RABBITMQ se deploy_rabbitmq è true
+        if [ "\$deploy_rabbitmq" = true ]; then
+            retry_command "cat /home/ubuntu/microk8s_demo_config/rabbitmq.yaml | envsubst | kubectl apply -f -"
+            retry_command "kubectl rollout status deployment/rabbitmq -n rabbitmq"
+        else
+            echo "Skipping RABBITMQ deployment."
+        fi
+
+        # Applica la configurazione per JENKINS se deploy_jenkins è true
+        if [ "\$deploy_jenkins" = true ]; then
+            retry_command "cat /home/ubuntu/microk8s_demo_config/jenkins.yaml | envsubst | kubectl apply -f -"
+            retry_command "kubectl rollout status deployment/jenkins -n jenkins"
+        else
+            echo "Skipping JENKINS deployment."
         fi
 
         # Messaggio di avviso e attesa

@@ -250,6 +250,9 @@ env_management() {
             "Set DEPLOY_MONGODB" "${DEPLOY_MONGODB}"
             "Set DEPLOY_POSTGRES" "${DEPLOY_POSTGRES}"
             "Set DEPLOY_ELK" "${DEPLOY_ELK}"
+            "Set DEPLOY_REDIS" "${DEPLOY_REDIS}"
+            "Set DEPLOY_RABBITMQ" "${DEPLOY_RABBITMQ}"
+            "Set DEPLOY_JENKINS" "${DEPLOY_JENKINS}"
             "Back" "Return to main menu"
         )
 
@@ -276,6 +279,15 @@ env_management() {
                 ;;
             "Set DEPLOY_ELK")
                 toggle_env_value "DEPLOY_ELK"
+                ;;
+            "Set DEPLOY_REDIS")
+                toggle_env_value "DEPLOY_REDIS"
+                ;;
+            "Set DEPLOY_RABBITMQ")
+                toggle_env_value "DEPLOY_RABBITMQ"
+                ;;
+            "Set DEPLOY_JENKINS")
+                toggle_env_value "DEPLOY_JENKINS"
                 ;;
             "Back")
                 break
@@ -323,6 +335,18 @@ toggle_env_value() {
         "DEPLOY_ELK")
             namespace="elk"
             yaml_file="microk8s_demo_config/elk.yaml"
+            ;;
+        "DEPLOY_REDIS")
+            namespace="redis"
+            yaml_file="microk8s_demo_config/redis.yaml"
+            ;;
+        "DEPLOY_RABBITMQ")
+            namespace="rabbitmq"
+            yaml_file="microk8s_demo_config/rabbitmq.yaml"
+            ;;
+        "DEPLOY_JENKINS")
+            namespace="jenkins"
+            yaml_file="microk8s_demo_config/jenkins.yaml"
             ;;
         *)
             msg_error "Invalid key: $key"
@@ -379,31 +403,22 @@ function deploy_stack() {
 # Function to handle stack management
 stack_management() {
     local options=(
-        "MariaDB Stack" "Manage MariaDB stack"
-        "ELK Stack" "Manage ELK stack"
-        "MongoDB Stack" "Manage MongoDB stack"
-        "PostgreSQL Stack" "Manage PostgreSQL stack"
         "Demo Go Stack" "Manage Demo Go stack"
         "Demo PHP Stack" "Manage Demo PHP stack"
         "Static Site Stack" "Manage Static Site stack"
+        "MariaDB Stack" "Manage MariaDB stack"
+        "PostgreSQL Stack" "Manage PostgreSQL stack"
+        "MongoDB Stack" "Manage MongoDB stack"
+        "ELK Stack" "Manage ELK stack"
+        "Redis Stack" "Manage Redis stack"
+        "RabbitMQ Stack" "Manage Rabbitmq stack"
+        "Jenkins Stack" "Manage Jenkins stack"
         "Back" "Return to the main menu"
     )
 
     while true; do
         choice=$(display_menu "Stack Management" options[@])
         case "$choice" in
-            "MariaDB Stack")
-                manage_stack "MariaDB" "mariadb"
-                ;;
-            "ELK Stack")
-                manage_stack "ELK" "elk"
-                ;;
-            "MongoDB Stack")
-                manage_stack "MongoDB" "mongodb"
-                ;;
-            "PostgreSQL Stack")
-                manage_stack "PostgreSQL" "postgres"
-                ;;
             "Demo Go Stack")
                 manage_stack "Demo Go" "demo-go"
                 ;;
@@ -412,6 +427,27 @@ stack_management() {
                 ;;
             "Static Site Stack")
                 manage_stack "Static Site" "static-site"
+                ;;
+            "MariaDB Stack")
+                manage_stack "MariaDB" "mariadb"
+                ;;
+            "PostgreSQL Stack")
+                manage_stack "PostgreSQL" "postgres"
+                ;;
+            "MongoDB Stack")
+                manage_stack "MongoDB" "mongodb"
+                ;;
+            "ELK Stack")
+                manage_stack "ELK" "elk"
+                ;;
+            "Redis Stack")
+                manage_stack "Redis" "redis"
+                ;;
+            "RabbitMQ Stack")
+                manage_stack "RabbitMQ" "rabbitmq"
+                ;;
+            "Jenkins Stack")
+                manage_stack "Jenkins" "jenkins"
                 ;;
             "Back")
                 break

@@ -53,6 +53,9 @@ add_nginx_dns_entries() {
   add_machine_to_dns "mongodb" "$VM_IP"
   add_machine_to_dns "pgadmin" "$VM_IP"
   add_machine_to_dns "kibana" "$VM_IP"
+  add_machine_to_dns "redis" "$VM_IP"
+  add_machine_to_dns "rabbitmq" "$VM_IP"
+  add_machine_to_dns "jenkins" "$VM_IP"
   restart_dns_service
 }
 
@@ -119,7 +122,13 @@ function destroy_nginx_lb() {
     remove_machine_from_dns demo-go
     remove_machine_from_dns demo-php
     remove_machine_from_dns static-site
-
+    remove_machine_from_dns "phpmyadmin"
+    remove_machine_from_dns "mongodb"
+    remove_machine_from_dns "pgadmin"
+    remove_machine_from_dns "kibana"
+    remove_machine_from_dns "redis"
+    remove_machine_from_dns "rabbitmq"
+    remove_machine_from_dns "jenkins"
     restart_dns_service    
     multipass stop --force $LOAD_BALANCE_HOSTNAME > /dev/null 2>&1
     multipass delete --purge $LOAD_BALANCE_HOSTNAME > /dev/null 2>&1

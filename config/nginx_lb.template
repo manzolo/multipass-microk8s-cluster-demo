@@ -84,7 +84,7 @@ server {
 }
 
 upstream k8s-cluster-pgadmin {
-    server ${VM_MAIN_NAME}.${DNS_SUFFIX}:31012;
+    server ${VM_MAIN_NAME}.${DNS_SUFFIX}:31013;
 }
 
 server {

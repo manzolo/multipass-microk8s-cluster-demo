@@ -72,6 +72,21 @@ function retry_command {
 }
 
 # Funzione per ottenere l'IP della vm
+force_stop_vm() {
+    vm_name=$1
+    multipass stop --force ${vm_name}
+}
+
+function get_num_instances() {
+  local count=$(multipass list | grep "${VM_NODE_PREFIX}" | wc -l)
+  if [ "$count" -eq 0 ]; then
+    echo "$instances" # Restituisce il valore pre-esistente di $instances
+  else
+    echo "$count" # Restituisce il conteggio di wc -l
+  fi
+}
+
+# Funzione per ottenere l'IP della vm
 get_vm_ip() {
     vm_name=$1
     echo $(multipass info "${vm_name}" | grep IPv4 | awk '{print $2}')
@@ -89,39 +104,48 @@ function print_service_table() {
     printf "${BLUE}%-20s | %-15s | %-10s | %-30s${NC}\n" "Service Name" "Namespace" "NodePort" "URL"
     printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
 
-    # Funzione per stampare una riga della tabella
-    print_service_row() {
-        local service_name="$1"
-        local namespace="$2"
-        local nodeport=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" service "$service_name" -n "$namespace" 2>/dev/null)
+    # Verifica lo stato di k8s-main
+    local main_state=$(multipass info k8s-main | grep "State:" | awk '{print $2}')
 
-        if [ -n "$nodeport" ]; then
-            printf "%-20s | %-15s | %-10s | ${BLUE}http://$IP:$nodeport${NC}\n" "$service_name" "$namespace" "$nodeport"
-        else
-            printf "%-20s | %-15s | %-10s | ${BLUE}Service not deployed${NC}\n" "$service_name" "$namespace" "-"
-        fi
-    }
+    # Estrai le informazioni e formatta la tabella Kubernetes solo se k8s-main è in esecuzione
+    if [[ "$main_state" == "Running" ]]; then
 
-    # Verifica e stampa i servizi
-    print_service_row "demo-go" "demo-go"
+        # Funzione per stampare una riga della tabella
+        print_service_row() {
+            local service_name="$1"
+            local namespace="$2"
+            local nodeport=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get -o jsonpath="{.spec.ports[0].nodePort}" service "$service_name" -n "$namespace" 2>/dev/null)
 
-    print_service_row "demo-php" "demo-php"
+            if [ -n "$nodeport" ]; then
+                printf "%-20s | %-15s | %-10s | ${BLUE}http://$IP:$nodeport${NC}\n" "$service_name" "$namespace" "$nodeport"
+            else
+                printf "%-20s | %-15s | %-10s | ${BLUE}Service not deployed${NC}\n" "$service_name" "$namespace" "-"
+            fi
+        }
 
-    print_service_row "static-site" "static-site"
+        # Verifica e stampa i servizi
+        print_service_row "demo-go" "demo-go"
 
-    print_service_row "phpmyadmin" "mariadb"
+        print_service_row "demo-php" "demo-php"
 
-    print_service_row "mongodb-express" "mongodb"
+        print_service_row "static-site" "static-site"
 
-    print_service_row "pgadmin" "postgres"
+        print_service_row "phpmyadmin" "mariadb"
 
-    print_service_row "kibana" "elk"
+        print_service_row "mongodb-express" "mongodb"
 
-    print_service_row "redis-commander" "redis"
+        print_service_row "pgadmin" "postgres"
 
-    print_service_row "rabbitmq" "rabbitmq"
+        print_service_row "kibana" "elk"
 
-    print_service_row "jenkins" "jenkins"
+        print_service_row "redis-commander" "redis"
+
+        print_service_row "rabbitmq" "rabbitmq"
+
+        print_service_row "jenkins" "jenkins"
+    else
+        printf "${YELLOW}k8s-main is not running. Kubernetes info not available.${NC}\n"
+    fi
 
     # Fine della tabella
     printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"

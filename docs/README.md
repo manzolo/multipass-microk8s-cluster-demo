@@ -438,6 +438,9 @@ This directory contains documentation for deploying and managing different appli
         microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443 --address 0.0.0.0
 
         https://${VM_MAIN_NAME}.${DNS_SUFFIX}:10443/#/login
+
+         Shell on clean ubuntu inside cluster
+        kubectl run ubuntu-shell --image=ubuntu:latest --restart=Never --tty -i --command -- /bin/bash
         
     </details>
 

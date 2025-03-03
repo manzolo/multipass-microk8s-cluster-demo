@@ -181,41 +181,6 @@ EOF
     "
 }
 
-# Function to generate MOTD
-generate_dns_server_motd() {
-    local MOTD_COMMANDS=$(cat <<EOF
-$(tput setaf 6)$(tput bold)================================================
-$(tput setaf 6)$(tput bold)  DNS Management Commands
-$(tput setaf 6)$(tput bold)================================================
-$(tput sgr0)
-
-$(tput setaf 2)$(tput bold)🖥️  Check /etc/dnsmasq.d/local.conf:$(tput sgr0)
-$(tput setaf 2)cat /etc/dnsmasq.d/local.conf$(tput sgr0)
-
-$(tput setaf 3)$(tput bold)🖥️  Check /etc/dnsmasq.d/dns-public.conf:$(tput sgr0)
-$(tput setaf 3)cat /etc/dnsmasq.d/dns-public.conf$(tput sgr0)
-
-$(tput setaf 3)$(tput bold)📈  Check dnsmasq:$(tput sgr0)
-$(tput setaf 3)sudo dnsmasq --test$(tput sgr0)
-
-$(tput setaf 6)$(tput bold)👀  Check dnsmasq status:$(tput sgr0)
-$(tput setaf 6)sudo systemctl status dnsmasq$(tput sgr0)
-
-$(tput setaf 5)$(tput bold)🔄  Restart dnsmasq service:$(tput sgr0)
-$(tput setaf 5)sudo systemctl restart dnsmasq$(tput sgr0)
-
-$(tput sgr0)
-EOF
-    )
-
-    msg_warn "Add ${DNS_VM_NAME} MOTD"
-    multipass exec "$DNS_VM_NAME" -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
-echo ""
-echo "Commands to run on ${DNS_VM_NAME}:"
-echo "$MOTD_COMMANDS"
-EOF
-}
-
 function create_dns_server() {
     # Main script execution
     create_dns_vm

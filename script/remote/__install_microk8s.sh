@@ -68,6 +68,41 @@ enable_microk8s_storage() {
   fi
 }
 
+install_zsh() {
+    echo "Installing zsh and plugins..."
+    sudo apt-get update > /dev/null 2>&1
+    sudo apt-get install -y zsh git curl fonts-powerline > /dev/null 2>&1
+
+    # Installa oh-my-zsh in modalità silenziosa
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended > /dev/null 2>&1
+    # Installa il plugin kubernetes per zsh
+    git clone --quiet https://github.com/zsh-users/zsh-autosuggestions.git "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    git clone --quiet https://github.com/zsh-users/zsh-syntax-highlighting.git "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+
+    # Modifica i permessi delle directory dei plugin
+    chmod g-w,o-w "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    chmod g-w,o-w "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+
+    # Modifica .zshrc per abilitare i plugin e personalizzare il prompt
+    # Sostituisci o aggiungi la riga plugins
+    if grep -q '^plugins=(' "$HOME/.zshrc"; then
+        sed -i 's/^plugins=(.*)/plugins=(git kubectl zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
+    else
+        echo 'plugins=(git kubectl zsh-autosuggestions zsh-syntax-highlighting)' >> "$HOME/.zshrc"
+    fi
+
+    # Sostituisci o aggiungi ZSH_THEME
+    if grep -q '^ZSH_THEME=' "$HOME/.zshrc"; then
+        sed -i 's/^ZSH_THEME=".*"/ZSH_THEME="agnoster"/' "$HOME/.zshrc"
+    else
+        echo 'ZSH_THEME="agnoster"' >> "$HOME/.zshrc"
+    fi
+    # Imposta zsh come shell predefinita in modalità non interattiva
+    sudo chsh -s $(which zsh) ubuntu
+
+    echo "zsh and plugins installed successfully."
+}
+
 #NET=10.0.0 # internal subnet of virtual machines
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
 #OWN_IP="$(hostname | sed -e 's/k8s-[^0-9]*//')"
@@ -140,6 +175,8 @@ enable_microk8s_storage
 
 echo "Waiting for microk8s to be ready..."
 sudo microk8s status --wait-ready > /dev/null 2>&1
+
+install_zsh
 
 # Esegui la funzione di attesa
 #wait_for_longhorn

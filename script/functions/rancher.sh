@@ -4,43 +4,42 @@ set -e
 
 # Function to create a VM and run commands
 create_and_configure_rancher_vm() {
-    local vm_name=$1
-    local ram=$2
-    local hdd=$3
-    local cpu=$4
+    local VM_NAME=$1
+    local RAM=$2
+    local HDD=$3
+    local CPU=$4
 
-    msg_warn "Creating and configuring VM: $vm_name"
+    msg_warn "Creating and configuring VM: $VM_NAME"
 
     # Create the VM
-    if ! multipass launch "22.04" -m "$ram" -d "$hdd" -c "$cpu" -n "$vm_name"; then
-        msg_error "Failed to create VM: $vm_name"
+    if ! multipass launch "22.04" -m "$RAM" -d "$HDD" -c "$CPU" -n "$VM_NAME"; then
+        msg_error "Failed to create VM: $VM_NAME"
         exit 1
     fi
 
-    add_machine_to_dns "$vm_name"
+    add_machine_to_dns "$VM_NAME"
     restart_dns_service
-    configure_rancher_dns_resolution "$vm_name"
-    install_docker "$vm_name"
-    start_rancher "$vm_name"
-    show_rancher_info "$vm_name"
-    vm_ip=$(get_vm_ip "$vm_name")
-    add_motd_rancher "$vm_name" "$vm_ip"
+    configure_rancher_dns_resolution "$VM_NAME"
+    install_docker "$VM_NAME"
+    start_rancher "$VM_NAME"
+    show_rancher_info "$VM_NAME"
+    add_motd_rancher "$VM_NAME"
 }
 
 # Function to configure DNS resolution
 configure_rancher_dns_resolution() {
-    local vm_name=$1
+    local VM_NAME=$1
     local DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
-    multipass exec "$vm_name" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
+    multipass exec "$VM_NAME" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
 nameserver '"$DNS_IP"'
 EOF'
 }
 
 # Function to start Rancher
 start_rancher() {
-    local vm_name=$1
-    msg_info "Starting Rancher on $vm_name using Docker Compose..."
-    multipass exec "$vm_name" -- bash -c 'cat > docker-compose.yml <<EOF
+    local VM_NAME=$1
+    msg_info "Starting Rancher on $VM_NAME using Docker Compose..."
+    multipass exec "$VM_NAME" -- bash -c 'cat > docker-compose.yml <<EOF
 services:
   rancher:
     image: rancher/rancher:'"$RANCHER_VERSION"'
@@ -57,56 +56,19 @@ volumes:
   rancher_data:
 EOF'
 
-    if ! multipass exec "$vm_name" -- docker compose up -d; then
-        msg_error "Failed to start Rancher on $vm_name using Docker Compose."
+    if ! multipass exec "$VM_NAME" -- docker compose up -d; then
+        msg_error "Failed to start Rancher on $VM_NAME using Docker Compose."
         exit 1
     fi
 }
 
 # Function to show Rancher info
 show_rancher_info() {
-    local vm_name=$1
-    multipass info "$vm_name"
+    local VM_NAME=$1
+    multipass info "$VM_NAME"
     echo "Rancher installation completed."
 }
 
-# Function to add MOTD for Rancher
-add_motd_rancher() {
-    local vm_name=$1
-    local vm_ip=$2
-    local MOTD_COMMANDS=$(cat <<EOF
-$(tput setaf 6)$(tput bold)================================================
-$(tput setaf 6)$(tput bold)  Rancher Management Commands
-$(tput setaf 6)$(tput bold)================================================
-$(tput sgr0)
-
-$(tput setaf 3)$(tput bold)🔄 Restart Rancher:$(tput sgr0)
-$(tput setaf 3)docker compose down && docker compose rm -f && docker compose up -d$(tput sgr0)
-
-$(tput setaf 6)$(tput bold)👀 Check Rancher logs:$(tput sgr0)
-$(tput setaf 6)docker logs rancher -f $(tput sgr0)
-
-$(tput setaf 5)$(tput bold)🔑 Show rancher bootstrap password:$(tput sgr0)
-$(tput setaf 5)docker logs rancher 2>&1 | grep "Bootstrap Password:"$(tput sgr0)
-
-Rancher homepage:
-
-https://${vm_ip}
-https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}
-
-Use the following link to complete the Rancher setup:
-https://${vm_ip}/dashboard/?setup=BOOTSTRAP_PASSWORD_HERE
-https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=BOOTSTRAP_PASSWORD_HERE
-EOF
-    )
-
-    msg_warn "Add ${vm_name} MOTD"
-    multipass exec "$vm_name" -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
-echo ""
-echo "Commands to run on ${vm_name}:"
-echo "$MOTD_COMMANDS"
-EOF
-}
 
 # Function to wait for Rancher bootstrap password
 wait_for_rancher_password() {

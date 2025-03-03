@@ -8,6 +8,7 @@ source $(dirname $0)/script/functions/dns.sh
 source $(dirname $0)/script/functions/nginx.sh
 source $(dirname $0)/script/functions/rancher.sh
 source $(dirname $0)/script/functions/cluster.sh
+source $(dirname $0)/script/functions/motd.sh
 
 # Load default values and environment variables
 source $(dirname $0)/script/functions/load_env.sh

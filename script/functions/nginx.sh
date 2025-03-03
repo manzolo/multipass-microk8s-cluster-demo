@@ -59,55 +59,6 @@ add_nginx_dns_entries() {
   restart_dns_service
 }
 
-# Function to generate MOTD
-generate_nginx_motd() {
-  local MOTD_COMMANDS=$(cat <<EOF
-$(tput setaf 6)$(tput bold)================================================
-$(tput setaf 6)$(tput bold)  Load Balancer Management Commands
-$(tput setaf 6)$(tput bold)================================================
-$(tput sgr0)
-
-$(tput setaf 3)$(tput bold)️👀 Check nginx configuration:$(tput sgr0)
-$(tput setaf 3)sudo nginx -t$(tput sgr0)
-
-$(tput setaf 6)$(tput bold)👀 Check Nginx file configuration:$(tput sgr0)
-$(tput setaf 6)sudo cat /etc/nginx/sites-available/cluster-balancer$(tput sgr0)
-
-$(tput setaf 7)$(tput bold)👀 Check Nginx Service status:$(tput sgr0)
-$(tput setaf 7)sudo systemctl status nginx.service$(tput sgr0)
-
-$(tput setaf 5)$(tput bold)🔄 Restart Nginx Service:$(tput sgr0)
-$(tput setaf 5)sudo systemctl restart nginx.service$(tput sgr0)
-
-$(tput setaf 8)$(tput bold)👀 Check systemd resolved configuration:$(tput sgr0)
-$(tput setaf 8)cat /etc/systemd/resolved.conf.d/dns-loc.conf$(tput sgr0)
-
-$(tput sgr0)
-
-http://demo-go.${DNS_SUFFIX}
-http://demo-php.${DNS_SUFFIX}
-http://static-site.${DNS_SUFFIX}
-http://phpmyadmin.${DNS_SUFFIX}
-
-ping ${DNS_VM_NAME}.${DNS_SUFFIX}
-ping ${VM_MAIN_NAME}.${DNS_SUFFIX}
-ping ${VM_NODE_PREFIX}1.${DNS_SUFFIX}
-
-ping demo-php.${DNS_SUFFIX}
-ping demo-go.${DNS_SUFFIX}
-ping static-site.${DNS_SUFFIX}
-ping phpmyadmin.${DNS_SUFFIX}
-
-EOF
-)
-  msg_warn "Add ${LOAD_BALANCE_HOSTNAME} MOTD"
-  multipass exec "$LOAD_BALANCE_HOSTNAME" -- sudo tee -a /home/ubuntu/.bashrc > /dev/null <<EOF
-    echo ""
-    echo "Commands to run on ${LOAD_BALANCE_HOSTNAME}:"
-    echo "$MOTD_COMMANDS"
-EOF
-}
-
 function create_nginx_lb() {
   # Main script execution
   launch_nginx_vm

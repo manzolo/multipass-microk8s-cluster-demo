@@ -76,6 +76,7 @@ cluster_management() {
                 local node_array=($(echo "$node_list"))
                 local num_nodes=${#node_array[@]}
 
+                # Se non ci sono nodi, mostra un avviso e torna al menu principale
                 if [[ $num_nodes -eq 0 ]]; then
                     msg_warn "No nodes with prefix '${VM_NODE_PREFIX}' found."
                     press_any_key
@@ -84,34 +85,62 @@ cluster_management() {
                     continue
                 fi
 
-                # Crea il menu con i nomi dei nodi
+                # Crea il menu con i nomi dei nodi e la descrizione con lo stato
                 local menu_items=()
                 for node in "${node_array[@]}"; do
-                    menu_items+=("$node" "$node")  # Ogni nodo è sia l'opzione che la descrizione
+                    local node_status=$(multipass info "$node" | grep "State:" | awk '{print $2}')
+                    menu_items+=("$node") # Aggiungi il nome del nodo
+                    menu_items+=("Remove Cluster Node (Status: $node_status)") # Aggiungi la descrizione con lo stato
                 done
 
-                # Crea il messaggio con il numero di nodi
-                local menu_message="Select a node to remove:\n\nActive nodes: $num_nodes"
+                # Crea il messaggio con il numero di nodi e una descrizione delle operazioni
+                local menu_message="Select a node to remove:\n\n"
+                menu_message+="Active nodes: $num_nodes\n\n"
+                menu_message+="This operation will:\n"
+                menu_message+="1. Cordon the node (mark it as unschedulable).\n"
+                menu_message+="2. Drain the node (safely evict all workloads).\n"
+                menu_message+="3. Remove the node from the cluster.\n"
+                menu_message+="4. Delete the node VM from Multipass."
 
                 # Mostra il menu e cattura la selezione
-                local selected_node=$(whiptail --menu "$menu_message" 15 60 10 "${menu_items[@]}" 3>&1 1>&2 2>&3)
+                local selected_node=$(whiptail --menu "$menu_message" 20 80 10 "${menu_items[@]}" 3>&1 1>&2 2>&3)
                 local return_code=$?
 
                 # Gestisci la selezione
                 if [[ $return_code -eq 0 ]]; then
-                    # Conferma la rimozione del nodo
-                    if whiptail --yesno "Are you sure you want to remove node '$selected_node'?" 10 60; then
-                        remove_node "$selected_node" && msg_info "Node removal done." || msg_error "Error during node removal."
+                    # Verifica che selected_node non sia vuoto
+                    if [[ -z "$selected_node" ]]; then
+                        msg_error "No node selected. Please try again."
                     else
-                        msg_info "Node removal cancelled."
+                        # Ottieni lo stato del nodo selezionato
+                        local selected_node_status=$(multipass info "$selected_node" 2>/dev/null | grep "State:" | awk '{print $2}')
+                        
+                        # Verifica se il nodo esiste
+                        if [[ -z "$selected_node_status" ]]; then
+                            msg_error "Node '$selected_node' does not exist."
+                        else
+                            # Conferma la rimozione del nodo con stato
+                            if whiptail --yesno "Are you sure you want to remove the following node?\n\nNode: $selected_node\nStatus: $selected_node_status" 12 70; then
+                                # Esegui la rimozione del nodo
+                                if remove_node "$selected_node"; then
+                                    msg_info "Node '$selected_node' removed successfully."
+                                else
+                                    msg_error "Failed to remove node '$selected_node'."
+                                fi
+                            else
+                                msg_info "Node '$selected_node' removal cancelled."
+                            fi
+                        fi
                     fi
                 elif [[ $return_code -eq 1 ]]; then
+                    # Torna al menu principale se viene premuto "Annulla"
                     msg_info "Node removal cancelled."
+                    continue
                 else
-                    msg_error "An unexpected error occurred."
+                    msg_error "An unexpected error occurred during node selection."
                 fi
 
-                # Mostra le informazioni del cluster e attendi un input
+                # Mostra le informazioni aggiornate del cluster e attendi un input
                 show_cluster_info
                 press_any_key
                 echo

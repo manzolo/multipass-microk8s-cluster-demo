@@ -193,7 +193,6 @@ function add_node() {
         NUM_VMS=1
     fi
 
-    local max_node_before_clone=$(get_max_node_instance) # Ottieni il numero massimo di nodi prima della clonazione.
     local starting_index=$(get_available_node_number)
 
     # Controllo per evitare l'errore di indice negativo o zero
@@ -203,12 +202,19 @@ function add_node() {
 
     # Fase di clonazione
     for ((i=1; i<=NUM_VMS; i++)); do
-        clone_node_vm
+        local new_node_name="${VM_NODE_PREFIX}${starting_index}"
+        msg_warn "Cloning VM: $new_node_name"
+        clone_vm "$new_node_name" "$node_template" # Clona sempre dal template
+
+        multipass start "$new_node_name"
+        wait_for_microk8s_ready "$new_node_name"
+
+        starting_index=$((starting_index + 1))
     done
 
     msg_warn "Configuring VM nodes..."
     # Fase di configurazione
-    for ((current_vm=starting_index; current_vm < starting_index + NUM_VMS; current_vm++)); do
+    for ((current_vm=starting_index - NUM_VMS; current_vm < starting_index; current_vm++)); do
         local node_name="${VM_NODE_PREFIX}${current_vm}"
         configure_node_vm "$node_name"
     done
@@ -221,16 +227,6 @@ function add_node() {
     fi
 }
 
-# Function to clone node VM (solo clonazione)
-function clone_node_vm() {
-    local max_node=$(get_max_node_instance) # Ottieni il numero massimo di nodi esistenti
-    local node_name="${VM_NODE_PREFIX}${max_node}" # Nodo da clonare
-    local new_node_name="${VM_NODE_PREFIX}$(get_available_node_number)" # Nome del nuovo nodo
-
-    msg_warn "Cloning VM: $new_node_name"
-    clone_vm "$new_node_name" "$node_name" # Clona dall'ultimo nodo creato
-}
-
 # Function to configure node VM (configurazione e avvio)
 function configure_node_vm() {
     local node_name=$1
@@ -241,7 +237,7 @@ function configure_node_vm() {
 
     add_machine_to_dns "$node_name"
     restart_dns_service
-    multipass info "$node_name"
+    #multipass info "$node_name"
 
     multipass start "$VM_MAIN_NAME"
     wait_for_microk8s_ready "$VM_MAIN_NAME"
@@ -251,16 +247,40 @@ function configure_node_vm() {
 }
 
 function remove_node() {
-    vm_name=$1
-    #Check prerequisites
+    local vm_name="$1"
+
+    # Check prerequisites
     check_command_exists "multipass"
 
-    remove_machine_from_dns $vm_name
+    # Verifica se è l'ultimo nodo con il prefisso VM_NODE_PREFIX
+    local node_count=$(multipass list | grep "${VM_NODE_PREFIX}" | wc -l)
+    if [[ "$node_count" -eq 1 ]]; then
+        msg_error "Cannot remove the last node with prefix '${VM_NODE_PREFIX}'."
+        return 1
+    fi
+
+    # Contrassegna il nodo come non schedulabile
+    msg_warn "Cordoning node: $vm_name"
+    run_command_on_node "$VM_MAIN_NAME" "microk8s kubectl cordon $vm_name"
+    if [ $? -ne 0 ]; then
+        msg_error "Failed to cordon node: $vm_name"
+        return 1
+    fi
+
+    # Esegui il drain del nodo
+    msg_warn "Draining node: $vm_name"
+    run_command_on_node "$VM_MAIN_NAME" "microk8s kubectl drain $vm_name --ignore-daemonsets --delete-emptydir-data --force"
+    if [ $? -ne 0 ]; then
+        msg_error "Failed to drain node: $vm_name"
+        return 1
+    fi
+
+    remove_machine_from_dns "$vm_name"
     restart_dns_service
 
-    run_command_on_node $VM_MAIN_NAME "microk8s remove-node $vm_name"
+    run_command_on_node "$VM_MAIN_NAME" "microk8s remove-node $vm_name"
 
-    multipass stop --force $vm_name
-    multipass delete --purge $vm_name
+    multipass stop --force "$vm_name"
+    multipass delete --purge "$vm_name"
     multipass purge
 }

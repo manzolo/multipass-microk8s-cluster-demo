@@ -36,26 +36,12 @@ function remove_vm() {
 
 # Function to clone a VM
 function clone_vm() {
-    local vm_dst=$1
-    local vm_src=$VM_MAIN_NAME
+    local new_vm_name="$1"
+    local source_vm="$2"
 
-    if [[ $vm_dst =~ ([0-9]+)$ ]]; then
-        local num=${BASH_REMATCH[1]}
-        local last_existing_vm=$(multipass list | grep "$VM_NODE_PREFIX" | awk '{print $1}' | sed "s/${VM_NODE_PREFIX}//" | sort -n | tail -1)
-        if [[ -n "$last_existing_vm" ]]; then
-            vm_src="${VM_NODE_PREFIX}${last_existing_vm}"
-        fi
-    fi
-
-    if ! multipass list | grep -q "$vm_src"; then
-        msg_warn "Source VM $vm_src does not exist. Skipping clone."
-        return 1
-    fi
-
-    msg_warn "Clone VM: $vm_src -> $vm_dst"
-
-    if ! multipass clone "$vm_src" -n "$vm_dst"; then
-        msg_error "Failed to clone VM: $vm_src"
+    multipass clone "$source_vm" --name "$new_vm_name"
+    if [ $? -ne 0 ]; then
+        msg_error "Failed to clone VM: $source_vm"
         return 1
     fi
 }
@@ -154,13 +140,23 @@ function complete_microk8s_setup() {
     done
 }
 
+function k8s_vm_setup(){
+    VM_NAME=$1
+    multipass transfer script/remote/__install_microk8s.sh $VM_NAME:/home/ubuntu/install_microk8s.sh
+    multipass exec $VM_NAME -- /home/ubuntu/install_microk8s.sh
+    multipass exec $VM_NAME -- rm -rf /home/ubuntu/install_microk8s.sh
+}
+
 function main_vm_setup(){
     create_vm $VM_MAIN_NAME "$mainRam" "$mainHddGb" "$mainCpu"
     add_machine_to_dns $VM_MAIN_NAME
     restart_dns_service
     msg_info "=== Task 1: ${VM_MAIN_NAME} Setup ==="
-    multipass transfer script/remote/__install_microk8s.sh $VM_MAIN_NAME:/home/ubuntu/install_microk8s.sh
-    multipass exec $VM_MAIN_NAME -- /home/ubuntu/install_microk8s.sh
-    multipass exec $VM_MAIN_NAME -- rm -rf /home/ubuntu/install_microk8s.sh
+    k8s_vm_setup $VM_MAIN_NAME
     multipass stop $VM_MAIN_NAME
+}
+
+function k8s_vm_save_template(){
+    multipass clone $VM_MAIN_NAME -n ${node_template}
+    multipass start $VM_MAIN_NAME
 }

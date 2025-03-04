@@ -31,6 +31,9 @@ create_dns_server
 # Create and configure VMs
 main_vm_setup
 
+# Save VM for cloning
+k8s_vm_save_template
+
 # Create worker node VMs
 add_node $instances
 

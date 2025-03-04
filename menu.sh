@@ -71,12 +71,47 @@ cluster_management() {
                 echo
                 ;;
             "Remove Cluster Node")
-                NODE_NAME=$(whiptail --inputbox "Enter the instance name of the node to remove (e.g., k8s-node3):" 8 50 --title "Node Name" 3>&1 1>&2 2>&3)
-                if [ $? -eq 0 ]; then
-                    remove_node "$NODE_NAME" && msg_info "Node removal done." || msg_error "Error during node removal."
-                else
-                    echo "Node removal cancelled."
+                # Ottieni la lista dei nodi con prefisso VM_NODE_PREFIX
+                local node_list=$(multipass list | grep "${VM_NODE_PREFIX}" | awk '{print $1}')
+                local node_array=($(echo "$node_list"))
+                local num_nodes=${#node_array[@]}
+
+                if [[ $num_nodes -eq 0 ]]; then
+                    msg_warn "No nodes with prefix '${VM_NODE_PREFIX}' found."
+                    press_any_key
+                    echo
+                    show_cluster_info
+                    continue
                 fi
+
+                # Crea il menu con i nomi dei nodi
+                local menu_items=()
+                for node in "${node_array[@]}"; do
+                    menu_items+=("$node" "$node")  # Ogni nodo è sia l'opzione che la descrizione
+                done
+
+                # Crea il messaggio con il numero di nodi
+                local menu_message="Select a node to remove:\n\nActive nodes: $num_nodes"
+
+                # Mostra il menu e cattura la selezione
+                local selected_node=$(whiptail --menu "$menu_message" 15 60 10 "${menu_items[@]}" 3>&1 1>&2 2>&3)
+                local return_code=$?
+
+                # Gestisci la selezione
+                if [[ $return_code -eq 0 ]]; then
+                    # Conferma la rimozione del nodo
+                    if whiptail --yesno "Are you sure you want to remove node '$selected_node'?" 10 60; then
+                        remove_node "$selected_node" && msg_info "Node removal done." || msg_error "Error during node removal."
+                    else
+                        msg_info "Node removal cancelled."
+                    fi
+                elif [[ $return_code -eq 1 ]]; then
+                    msg_info "Node removal cancelled."
+                else
+                    msg_error "An unexpected error occurred."
+                fi
+
+                # Mostra le informazioni del cluster e attendi un input
                 show_cluster_info
                 press_any_key
                 echo

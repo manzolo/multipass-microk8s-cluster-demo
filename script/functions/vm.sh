@@ -160,3 +160,131 @@ function k8s_vm_save_template(){
     multipass clone $VM_MAIN_NAME -n ${node_template}
     multipass start $VM_MAIN_NAME
 }
+
+function client_vm_setup() {
+    local MEM="1Gb"
+    local DISK="10Gb"
+    local CPUS="1"
+
+    # Crea la VM
+    create_vm "$CLIENT_HOSTNAME" "$MEM" "$DISK" "$CPUS"
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to create VM: $VM_NAME"
+        return 1
+    fi
+
+    # Aggiungi al DNS
+    add_machine_to_dns "$CLIENT_HOSTNAME"
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to add $VM_NAME to DNS"
+        return 1
+    fi
+
+    # Riavvia il servizio DNS
+    restart_dns_service
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to restart DNS service"
+        return 1
+    fi
+
+    # Avvia la VM
+    multipass start "$CLIENT_HOSTNAME"
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to start VM: $VM_NAME"
+        return 1
+    fi
+
+    # Installa software e configura (xfce4, browser, xrdp, .xsession)
+    multipass exec "$CLIENT_HOSTNAME" -- bash -c "sudo apt update -qq && sudo apt install -yqq xfce4 firefox xrdp && echo 'xfce4-session' > ~/.xsession && chmod +x ~/.xsession && sudo systemctl restart xrdp && echo "ubuntu:ubuntu" | sudo chpasswd"
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to install software and configure VM: $VM_NAME"
+        return 1
+    fi
+    
+    multipass stop "$CLIENT_HOSTNAME"
+
+    msg_info "Client VM setup complete. Connect using RDP."
+}
+
+function client_vm_rdp() {
+    
+    multipass start "$CLIENT_HOSTNAME"
+
+    # Ottieni l'indirizzo IP
+    local VM_IP=$(get_vm_ip "$CLIENT_HOSTNAME")
+    if [[ -z "$VM_IP" ]]; then
+        msg_error "Failed to get IP address for VM: $CLIENT_HOSTNAME"
+        return 1
+    fi
+
+    # Crea il file .remmina temporaneo con l'IP corretto
+    cat <<EOF > /tmp/k8s-client.remmina
+[remmina]
+protocol=RDP
+name=${CLIENT_HOSTNAME}
+server=${VM_IP}
+username=ubuntu
+password=ubuntu
+resolution=800x600
+disable-encryption=1
+ignore-certificate=1
+security=
+console=0
+sharefolder=
+shareprinter=0
+shareport=0
+sharedevice=0
+sharebuffer=0
+color-depth=32
+sound=1
+gateway_server=
+gateway_username=
+gateway_password=
+EOF
+
+    # Avvia Remmina con il file .remmina
+    remmina -c /tmp/${CLIENT_HOSTNAME}.remmina > /dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to start Remmina"
+        return 1
+    fi
+
+    # Rimuovi il file .remmina temporaneo
+    rm /tmp/${CLIENT_HOSTNAME}.remmina
+}
+
+function client_vm_remove() {
+    # Rimuovi dal DNS
+    remove_machine_from_dns "$CLIENT_HOSTNAME"
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to remove $CLIENT_HOSTNAME from DNS"
+        return 1
+    fi
+
+    # Riavvia il servizio DNS
+    restart_dns_service
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to restart DNS service"
+        return 1
+    fi
+
+    # Arresta la VM
+    multipass stop --force "$CLIENT_HOSTNAME"
+    if [[ $? -ne 0 ]]; then
+        msg_warn "Failed to stop VM: $CLIENT_HOSTNAME"
+    fi
+
+    # Elimina la VM
+    multipass delete --purge "$CLIENT_HOSTNAME"
+    if [[ $? -ne 0 ]]; then
+        msg_warn "Failed to delete VM: $CLIENT_HOSTNAME"
+    fi
+
+    # Purge Multipass
+    multipass purge
+    if [[ $? -ne 0 ]]; then
+        msg_warn "Failed to purge Multipass"
+    fi
+
+    msg_info "Client VM removed."
+}

@@ -326,11 +326,18 @@ stack_management() {
 }
 
 # Function to manage a specific stack
+# Function to manage a specific stack
 manage_stack() {
     local stack_name=$1
     local namespace=$2
     local options=(
-        "Check Status" "Check the status of the $stack_name stack"
+        "Check Status" "Show the status of all resources in the $stack_name stack"
+        "View Pod Logs" "View logs of a specific pod in the $stack_name stack"
+        "Restart Stack" "Restart all pods in the $stack_name stack"
+        "Scale Stack" "Scale the number of replicas in the $stack_name stack"
+        "View Exposed Services" "Show URLs or IPs of exposed services in the $stack_name stack"
+        "Describe Stack" "Show detailed information about the $stack_name stack"
+        "Monitor Resource Usage" "Show resource usage of pods in the $stack_name stack"
         "Back" "Return to the previous menu"
     )
 
@@ -345,6 +352,68 @@ manage_stack() {
                 else
                     msg_info "Multipass VM ${VM_MAIN_NAME} is not running. Cannot check status."
                 fi
+                press_any_key
+                echo
+                ;;
+            "View Pod Logs")
+                local pod_name=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get pods -n "$namespace" -o name | head -n 1)
+                if [[ -n "$pod_name" ]]; then
+                    multipass exec "${VM_MAIN_NAME}" -- kubectl logs "$pod_name" -n "$namespace" && \
+                    msg_info "Logs for pod $pod_name in namespace $namespace." || \
+                    msg_error "Failed to view logs for pod $pod_name."
+                else
+                    msg_info "No pods found in namespace $namespace."
+                fi
+                press_any_key
+                echo
+                ;;
+            "Restart Stack")
+                multipass exec "${VM_MAIN_NAME}" -- kubectl rollout restart deployment -n "$namespace" && \
+                msg_info "Restarted all deployments in the $stack_name stack." || \
+                msg_error "Failed to restart deployments in the $stack_name stack."
+                press_any_key
+                echo
+                ;;
+            "Scale Stack")
+                # Ottieni il nome del deployment nel namespace specificato
+                local deployment_name=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get deployments -n "$namespace" -o jsonpath='{.items[0].metadata.name}')
+                
+                if [[ -z "$deployment_name" ]]; then
+                    msg_error "No deployment found in namespace $namespace."
+                else
+                    # Chiedi all'utente il numero di repliche
+                    local replicas=$(whiptail --inputbox "Enter the number of replicas:" 10 60 3>&1 1>&2 2>&3)
+                    
+                    if [[ -n "$replicas" ]]; then
+                        # Esegui il comando di scale
+                        multipass exec "${VM_MAIN_NAME}" -- kubectl scale deployment "$deployment_name" --replicas="$replicas" -n "$namespace" && \
+                        msg_info "Scaled deployment '$deployment_name' in the $stack_name stack to $replicas replicas." || \
+                        msg_error "Failed to scale deployment '$deployment_name' in the $stack_name stack."
+                    else
+                        msg_info "Scale operation cancelled."
+                    fi
+                fi
+                press_any_key
+                echo
+                ;;
+            "View Exposed Services")
+                multipass exec "${VM_MAIN_NAME}" -- kubectl get ingress,svc -n "$namespace" && \
+                msg_info "Exposed services in the $stack_name stack." || \
+                msg_error "Failed to retrieve exposed services."
+                press_any_key
+                echo
+                ;;
+            "Describe Stack")
+                multipass exec "${VM_MAIN_NAME}" -- kubectl describe deployment -n "$namespace" && \
+                msg_info "Detailed information about the $stack_name stack." || \
+                msg_error "Failed to describe the $stack_name stack."
+                press_any_key
+                echo
+                ;;
+            "Monitor Resource Usage")
+                multipass exec "${VM_MAIN_NAME}" -- kubectl top pod -n "$namespace" && \
+                msg_info "Resource usage of pods in the $stack_name stack." || \
+                msg_error "Failed to monitor resource usage."
                 press_any_key
                 echo
                 ;;

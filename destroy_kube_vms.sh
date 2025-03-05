@@ -22,6 +22,7 @@ done
 # Rimuovi le VM esistenti
 remove_vm "${VM_MAIN_NAME}"
 remove_vm "${DNS_VM_NAME}"
+remove_vm "${CLIENT_HOSTNAME}"
 remove_vm "${node_template}"
 
 # Esegui il purge per rimuovere eventuali residui

@@ -29,7 +29,6 @@ cluster_management() {
         "Shell on ${VM_MAIN_NAME}" "Shell on ${VM_MAIN_NAME}"
         "Add Cluster Node" "Add a node to the Kubernetes cluster"
         "Remove Cluster Node" "Remove a node from the Kubernetes cluster"
-        "Show Cluster" "Show Cluster information"
         "Restore Cluster Health" "Restore Cluster Health"
         "Destroy Cluster" "Destroy the Kubernetes cluster"
         "Back" "Return to main menu"
@@ -141,11 +140,6 @@ cluster_management() {
                 fi
 
                 # Mostra le informazioni aggiornate del cluster e attendi un input
-                show_cluster_info
-                press_any_key
-                echo
-                ;;
-            "Show Cluster")
                 show_cluster_info
                 press_any_key
                 echo
@@ -524,6 +518,38 @@ stack_management() {
     done
 }
 
+# Function to handle client management
+client_management() {
+    local options=(
+        "Install" "Install client VM"
+        "RDP" "Enter via RDP on client VM"
+        "Remove" "Uninstall client VM"
+        "Back" "Return to the main menu"
+    )
+
+    while true; do
+        choice=$(display_menu "Client Management" options[@])
+        case "$choice" in
+            "Install")
+                client_vm_setup
+                ;;
+            "RDP")
+                client_vm_rdp
+                ;;
+            "Remove")
+                client_vm_remove
+                ;;
+                
+            "Back")
+                break
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+}
+
 # Function to manage a specific stack
 manage_stack() {
     local stack_name=$1
@@ -566,6 +592,8 @@ main_menu() {
         "Rancher Management" "Manage Rancher"
         "Env Management" "Manage .env file settings"
         "Stack Management" "Manage all stacks (MariaDB, ELK, MongoDB, etc.)"
+        "Client Management" "Ubuntu client for test"
+        "Show Cluster" "Show Cluster information"
         "Uninstall All" "Destroy Kubernetes cluster, Nginx LB, and Rancher"
         "Exit" "Exit the program"
     )
@@ -587,8 +615,16 @@ main_menu() {
             "Env Management")
                 env_management
                 ;;
+            "Client Management")
+                client_management
+                ;;
             "Stack Management")
                 stack_management
+                ;;
+            "Show Cluster")
+                show_cluster_info
+                press_any_key
+                echo
                 ;;
             "Uninstall All")
                 if whiptail --yesno "Are you sure you want to uninstall everything? This will destroy the Kubernetes cluster, Nginx LB, and Rancher." 10 60; then

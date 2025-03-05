@@ -348,3 +348,11 @@ function client_vm_remove() {
 
     msg_info "Client VM removed."
 }
+
+client_vm_stop() {
+    multipass stop --force "$CLIENT_HOSTNAME"
+}
+
+client_vm_start() {
+    multipass start "$CLIENT_HOSTNAME"
+}

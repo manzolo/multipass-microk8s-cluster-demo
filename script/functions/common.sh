@@ -4,6 +4,10 @@
 if [[ -f .env ]]; then
   export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
 fi
+# Load .env.local file if it exists
+if [[ -f .env.local ]]; then
+  export $(grep -v '^#' .env.local | xargs) # Export variables from .env.local, ignoring comments
+fi
 
 NC=$'\033[0m' # No Color
 

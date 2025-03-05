@@ -294,59 +294,59 @@ dns_management() {
     done
 }
 
-# Function to handle .env file management
-env_management() {
+# Function to handle stack management
+stack_management() {
+    local config_dir="config"
+    local options=()
+    local services=()
+
+    # Itera su ogni file YAML nella cartella dei config
+    for file in "$config_dir"/*.yaml; do
+        service=$(basename "$file" .yaml)
+        human_service=$(echo "$service" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) {$i=toupper(substr($i,1,1)) substr($i,2)}; print}')
+        services+=("$human_service" "$service")
+        options+=("${human_service} Stack" "Manage ${human_service} stack")
+    done
+
+    options+=("Back" "Return to the main menu")
+
     while true; do
-        # Ricarica i valori dal file .env
-        source .env
+        choice=$(display_menu "Stack Management" options[@])
+        if [[ "$choice" == "Back" ]]; then
+            break
+        fi
 
-        # Crea le opzioni del menu con lo stato attuale
-        local options=(
-            "Set DEPLOY_DEMO_GO" "${DEPLOY_DEMO_GO}"
-            "Set DEPLOY_DEMO_PHP" "${DEPLOY_DEMO_PHP}"
-            "Set DEPLOY_STATIC_SITE" "${DEPLOY_STATIC_SITE}"
-            "Set DEPLOY_MARIADB" "${DEPLOY_MARIADB}"
-            "Set DEPLOY_MONGODB" "${DEPLOY_MONGODB}"
-            "Set DEPLOY_POSTGRES" "${DEPLOY_POSTGRES}"
-            "Set DEPLOY_ELK" "${DEPLOY_ELK}"
-            "Set DEPLOY_REDIS" "${DEPLOY_REDIS}"
-            "Set DEPLOY_RABBITMQ" "${DEPLOY_RABBITMQ}"
-            "Set DEPLOY_JENKINS" "${DEPLOY_JENKINS}"
-            "Back" "Return to main menu"
-        )
+        for ((i=0; i<${#services[@]}; i+=2)); do
+            if [[ "$choice" == "${services[i]} Stack" ]]; then
+                manage_stack "${services[i]}" "${services[i+1]}"
+                break
+            fi
+        done
+    done
+}
 
-        # Mostra il menu
-        choice=$(display_menu "ENV Management" options[@])
+# Function to manage a specific stack
+manage_stack() {
+    local stack_name=$1
+    local namespace=$2
+    local options=(
+        "Check Status" "Check the status of the $stack_name stack"
+        "Back" "Return to the previous menu"
+    )
+
+    while true; do
+        choice=$(display_menu "$stack_name Stack Management" options[@])
         case "$choice" in
-            "Set DEPLOY_DEMO_GO")
-                toggle_env_value "DEPLOY_DEMO_GO"
-                ;;
-            "Set DEPLOY_DEMO_PHP")
-                toggle_env_value "DEPLOY_DEMO_PHP"
-                ;;
-            "Set DEPLOY_STATIC_SITE")
-                toggle_env_value "DEPLOY_STATIC_SITE"
-                ;;
-            "Set DEPLOY_MARIADB")
-                toggle_env_value "DEPLOY_MARIADB"
-                ;;
-            "Set DEPLOY_MONGODB")
-                toggle_env_value "DEPLOY_MONGODB"
-                ;;
-            "Set DEPLOY_POSTGRES")
-                toggle_env_value "DEPLOY_POSTGRES"
-                ;;
-            "Set DEPLOY_ELK")
-                toggle_env_value "DEPLOY_ELK"
-                ;;
-            "Set DEPLOY_REDIS")
-                toggle_env_value "DEPLOY_REDIS"
-                ;;
-            "Set DEPLOY_RABBITMQ")
-                toggle_env_value "DEPLOY_RABBITMQ"
-                ;;
-            "Set DEPLOY_JENKINS")
-                toggle_env_value "DEPLOY_JENKINS"
+            "Check Status")
+                if multipass list | grep -q "${VM_MAIN_NAME}"; then
+                    multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n "$namespace" && \
+                    msg_info "Status of $stack_name stack in namespace $namespace." || \
+                    msg_error "Failed to check status of $stack_name stack."
+                else
+                    msg_info "Multipass VM ${VM_MAIN_NAME} is not running. Cannot check status."
+                fi
+                press_any_key
+                echo
                 ;;
             "Back")
                 break
@@ -358,64 +358,64 @@ env_management() {
     done
 }
 
-# Function to toggle a boolean value in .env and apply/delete Kubernetes resources
+# Function to handle .env file management
+env_management() {
+    while true; do
+        source .env
+        if [ -f .env.local ]; then
+            source .env.local
+        fi
+
+        local options=()
+
+        for file in config/*.yaml; do
+            service=$(basename "$file" .yaml)
+            env_var="DEPLOY_$(echo "$service" | tr '[:lower:]-' '[:upper:]_')"
+
+            if grep -q "^$env_var=" .env; then
+                current_value=$(grep "^$env_var=" .env | cut -d= -f2)
+            elif [ -f .env.local ] && grep -q "^$env_var=" .env.local; then
+                current_value=$(grep "^$env_var=" .env.local | cut -d= -f2)
+            else
+                current_value="false"
+            fi
+
+            options+=("Set $env_var" "$current_value")
+        done
+
+        options+=("Back" "Return to main menu")
+
+        choice=$(display_menu "ENV Management" options[@])
+
+        if [[ "$choice" == "Back" ]]; then
+            break
+        fi
+
+        key=$(echo "$choice" | sed 's/^Set //')
+        toggle_env_value "$key"
+    done
+}
+
+# Function to toggle a boolean value in .env or .env.local and apply/delete Kubernetes resources
 toggle_env_value() {
     local key=$1
-    local current_value=$(grep "^$key=" .env | cut -d= -f2)
-    local namespace=""
-    local yaml_file=""
+    local file=".env"
 
-    # Mappa le variabili ai namespace e ai file YAML corrispondenti
-    case "$key" in
-        "DEPLOY_DEMO_GO")
-            namespace="demo-go"
-            yaml_file="microk8s_demo_config/demo-go.yaml"
-            ;;
-        "DEPLOY_DEMO_PHP")
-            namespace="demo-php"
-            yaml_file="microk8s_demo_config/demo-php.yaml"
-            ;;
-        "DEPLOY_STATIC_SITE")
-            namespace="static-site"
-            yaml_file="microk8s_demo_config/static-site.yaml"
-            ;;
-        "DEPLOY_MARIADB")
-            namespace="mariadb"
-            yaml_file="microk8s_demo_config/mariadb.yaml"
-            ;;
-        "DEPLOY_MONGODB")
-            namespace="mongodb"
-            yaml_file="microk8s_demo_config/mongodb.yaml"
-            ;;
-        "DEPLOY_POSTGRES")
-            namespace="postgres"
-            yaml_file="microk8s_demo_config/postgres.yaml"
-            ;;
-        "DEPLOY_ELK")
-            namespace="elk"
-            yaml_file="microk8s_demo_config/elk.yaml"
-            ;;
-        "DEPLOY_REDIS")
-            namespace="redis"
-            yaml_file="microk8s_demo_config/redis.yaml"
-            ;;
-        "DEPLOY_RABBITMQ")
-            namespace="rabbitmq"
-            yaml_file="microk8s_demo_config/rabbitmq.yaml"
-            ;;
-        "DEPLOY_JENKINS")
-            namespace="jenkins"
-            yaml_file="microk8s_demo_config/jenkins.yaml"
-            ;;
-        *)
-            msg_error "Invalid key: $key"
-            press_any_key
-            return
-            ;;
-    esac
+    if [ -f .env.local ]; then
+        file=".env.local"
+    else
+        touch .env.local
+        file=".env.local"
+    fi
 
-    # Inverte il valore
-    if [[ "$current_value" == true ]]; then
+    if grep -q "^$key=" "$file"; then
+        current_value=$(grep "^$key=" "$file" | cut -d= -f2)
+    else
+        echo "$key=false" >> "$file"
+        current_value="false"
+    fi
+
+    if [[ "$current_value" == "true" ]]; then
         new_value="false"
         action="delete"
     else
@@ -423,11 +423,18 @@ toggle_env_value() {
         action="apply"
     fi
 
-    # Aggiorna il file .env
-    sed -i "s/^$key=.*/$key=$new_value/" .env
-    #msg_info "$key toggled to $new_value."
+    if grep -q "^$key=" "$file"; then
+        sed -i "s/^$key=.*/$key=$new_value/" "$file"
+    else
+        echo "$key=$new_value" >> "$file"
+    fi
 
-    deploy_stack $namespace $yaml_file $action
+    msg_info "$key toggled to $new_value."
+
+    local namespace=$(echo "$key" | cut -d_ -f2- | tr '[:upper:]_' '[:lower:]-')
+    local yaml_file="microk8s_demo_config/${namespace}.yaml"
+
+    deploy_stack "$namespace" "$yaml_file" "$action"
 
     press_any_key
     echo
@@ -438,18 +445,15 @@ function deploy_stack() {
     local yaml_file=$2
     local action=$3
 
-    # Verifica se la VM Multipass è attiva
     if multipass list | grep -q "${VM_MAIN_NAME}"; then
-        # Sostituisci le variabili nel file YAML e applica/elimina le risorse
         if [[ "$action" == "delete" ]]; then
             multipass exec "${VM_MAIN_NAME}" -- kubectl delete -f "$yaml_file" && \
             msg_info "Deleted resources from $yaml_file." || \
             msg_error "Failed to delete resources from $yaml_file."
         else
-            # Usa envsubst per sostituire le variabili di ambiente nel file YAML
             multipass exec "${VM_MAIN_NAME}" -- bash -c "
                 export DNS_SUFFIX='${DNS_SUFFIX}'
-                cat '$yaml_file' | envsubst | kubectl apply -f -
+                cat '/home/ubuntu/$yaml_file' | envsubst | kubectl apply -f -
             " && \
             msg_info "Applied $yaml_file." || \
             msg_error "Failed to apply $yaml_file."
@@ -459,54 +463,21 @@ function deploy_stack() {
     fi
 }
 
-# Function to handle stack management
-stack_management() {
+# Function to handle stack and environment management
+stack_and_env_management() {
     local options=(
-        "Demo Go Stack" "Manage Demo Go stack"
-        "Demo PHP Stack" "Manage Demo PHP stack"
-        "Static Site Stack" "Manage Static Site stack"
-        "MariaDB Stack" "Manage MariaDB stack"
-        "PostgreSQL Stack" "Manage PostgreSQL stack"
-        "MongoDB Stack" "Manage MongoDB stack"
-        "ELK Stack" "Manage ELK stack"
-        "Redis Stack" "Manage Redis stack"
-        "RabbitMQ Stack" "Manage Rabbitmq stack"
-        "Jenkins Stack" "Manage Jenkins stack"
+        "Stack Management" "Manage all stacks (MariaDB, ELK, MongoDB, etc.)"
+        "Env Management" "Manage .env file settings"
         "Back" "Return to the main menu"
     )
-
     while true; do
-        choice=$(display_menu "Stack Management" options[@])
+        choice=$(display_menu "Stack & Environment Management" options[@])
         case "$choice" in
-            "Demo Go Stack")
-                manage_stack "Demo Go" "demo-go"
+            "Stack Management")
+                stack_management
                 ;;
-            "Demo PHP Stack")
-                manage_stack "Demo PHP" "demo-php"
-                ;;
-            "Static Site Stack")
-                manage_stack "Static Site" "static-site"
-                ;;
-            "MariaDB Stack")
-                manage_stack "MariaDB" "mariadb"
-                ;;
-            "PostgreSQL Stack")
-                manage_stack "PostgreSQL" "postgres"
-                ;;
-            "MongoDB Stack")
-                manage_stack "MongoDB" "mongodb"
-                ;;
-            "ELK Stack")
-                manage_stack "ELK" "elk"
-                ;;
-            "Redis Stack")
-                manage_stack "Redis" "redis"
-                ;;
-            "RabbitMQ Stack")
-                manage_stack "RabbitMQ" "rabbitmq"
-                ;;
-            "Jenkins Stack")
-                manage_stack "Jenkins" "jenkins"
+            "Env Management")
+                env_management
                 ;;
             "Back")
                 break
@@ -550,39 +521,6 @@ client_management() {
     done
 }
 
-# Function to manage a specific stack
-manage_stack() {
-    local stack_name=$1
-    local namespace=$2
-    local options=(
-        "Check Status" "Check the status of the $stack_name stack"
-        "Back" "Return to the previous menu"
-    )
-
-    while true; do
-        choice=$(display_menu "$stack_name Stack Management" options[@])
-        case "$choice" in
-            "Check Status")
-                if multipass list | grep -q "${VM_MAIN_NAME}"; then
-                    multipass exec "${VM_MAIN_NAME}" -- kubectl get all -o wide -n "$namespace" && \
-                    msg_info "Status of $stack_name stack in namespace $namespace." || \
-                    msg_error "Failed to check status of $stack_name stack."
-                else
-                    msg_info "Multipass VM ${VM_MAIN_NAME} is not running. Cannot check status."
-                fi
-                press_any_key
-                echo
-                ;;
-            "Back")
-                break
-                ;;
-            *)
-                break
-                ;;
-        esac
-    done
-}
-
 # Main menu
 main_menu() {
     local options=(
@@ -590,7 +528,6 @@ main_menu() {
         "DNS Management" "Manage local cluster DNS server"
         "Load Balancer Management" "Manage Nginx Load Balancer"
         "Rancher Management" "Manage Rancher"
-        "Env Management" "Manage .env file settings"
         "Stack Management" "Manage all stacks (MariaDB, ELK, MongoDB, etc.)"
         "Client Management" "Ubuntu client for test"
         "Show Cluster" "Show Cluster information"
@@ -612,14 +549,11 @@ main_menu() {
             "Rancher Management")
                 rancher_management
                 ;;
-            "Env Management")
-                env_management
-                ;;
             "Client Management")
                 client_management
                 ;;
             "Stack Management")
-                stack_management
+                stack_and_env_management
                 ;;
             "Show Cluster")
                 show_cluster_info
@@ -646,5 +580,6 @@ main_menu() {
     done
 }
 
+create_env_local
 # Execute the main menu
 main_menu

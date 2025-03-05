@@ -11,6 +11,8 @@ source $(dirname $0)/script/functions/rancher.sh
 source $(dirname $0)/script/functions/cluster.sh
 source $(dirname $0)/script/functions/motd.sh
 
+create_env_local
+
 # Load default values and environment variables
 source $(dirname $0)/script/functions/load_env.sh
 

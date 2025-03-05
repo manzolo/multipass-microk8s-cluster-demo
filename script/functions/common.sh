@@ -45,6 +45,21 @@ run_command_on_node() {
     multipass exec -v ${node_name} -- ${command}
 }
 
+function create_env_local() {
+  local env_file=".env.local"
+
+  if [[ ! -f "$env_file" ]]; then
+    cat <<EOF > "$env_file"
+DEPLOY_DEMO_GO=true
+DEPLOY_DEMO_PHP=true
+DEPLOY_STATIC_SITE=true
+DEPLOY_MARIADB=true
+EOF
+    echo "Created $env_file with default values."
+  fi
+}
+
+
 # Funzione per eseguire un comando con un numero massimo di tentativi
 function retry_command {
     local command="$1"

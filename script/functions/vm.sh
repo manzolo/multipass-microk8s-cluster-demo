@@ -166,17 +166,27 @@ function client_vm_setup() {
     local DISK="10Gb"
     local CPUS="1"
 
+    # Ottieni le impostazioni locali dell'host
+    local host_locale=$(locale | awk -F= '/^LANG=/ {print $2}')
+    if [[ -z "$host_locale" ]]; then
+        host_locale="en_US.UTF-8"  # Imposta un valore predefinito
+    fi
+    local host_language=$(echo "$host_locale" | cut -d. -f1)
+
+    # Ottieni il layout di tastiera dell'host
+    local host_keyboard_layout=$(localectl status | grep "X11 Layout" | awk '{print $3}')
+
     # Crea la VM
     create_vm "$CLIENT_HOSTNAME" "$MEM" "$DISK" "$CPUS"
     if [[ $? -ne 0 ]]; then
-        msg_error "Failed to create VM: $VM_NAME"
+        msg_error "Failed to create VM: $CLIENT_HOSTNAME"
         return 1
     fi
 
     # Aggiungi al DNS
     add_machine_to_dns "$CLIENT_HOSTNAME"
     if [[ $? -ne 0 ]]; then
-        msg_error "Failed to add $VM_NAME to DNS"
+        msg_error "Failed to add $CLIENT_HOSTNAME to DNS"
         return 1
     fi
 
@@ -190,24 +200,60 @@ function client_vm_setup() {
     # Avvia la VM
     multipass start "$CLIENT_HOSTNAME"
     if [[ $? -ne 0 ]]; then
-        msg_error "Failed to start VM: $VM_NAME"
+        msg_error "Failed to start VM: $CLIENT_HOSTNAME"
         return 1
     fi
 
     # Installa software e configura (xfce4, browser, xrdp, .xsession)
-    multipass exec "$CLIENT_HOSTNAME" -- bash -c "sudo apt update -qq && sudo apt install -yqq xfce4 firefox xrdp && echo 'xfce4-session' > ~/.xsession && chmod +x ~/.xsession && sudo systemctl restart xrdp && echo "ubuntu:ubuntu" | sudo chpasswd"
+    multipass exec "$CLIENT_HOSTNAME" -- bash -c "
+        sudo apt update -qq &&
+        sudo apt install -yqq xfce4 firefox xrdp &&
+        echo 'xfce4-session' > ~/.xsession &&
+        chmod +x ~/.xsession &&
+        sudo systemctl restart xrdp &&
+        echo 'ubuntu:ubuntu' | sudo chpasswd
+    "
     if [[ $? -ne 0 ]]; then
-        msg_error "Failed to install software and configure VM: $VM_NAME"
+        msg_error "Failed to install software and configure VM: $CLIENT_HOSTNAME"
         return 1
     fi
-    
+
+    # Configura la localizzazione
+    multipass exec "$CLIENT_HOSTNAME" -- bash -c "
+        sudo locale-gen $host_locale &&
+        sudo update-locale LANG=$host_locale
+    "
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to configure locale on VM: $CLIENT_HOSTNAME"
+        return 1
+    fi
+
+   # Configura il layout della tastiera
+    multipass exec "$CLIENT_HOSTNAME" -- bash -c '
+        sudo sed -i "s/XKBLAYOUT=\".*\"/XKBLAYOUT=\"'"$host_keyboard_layout"'\"/" /etc/default/keyboard &&
+        sudo dpkg-reconfigure -f noninteractive keyboard-configuration &&
+        echo "setxkbmap '"$host_keyboard_layout"'" >> ~/.bashrc
+    '
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to configure keyboard layout on VM: $CLIENT_HOSTNAME"
+        return 1
+    fi
+
+    # Riavvia la VM per applicare le modifiche
     multipass stop "$CLIENT_HOSTNAME"
+    multipass start "$CLIENT_HOSTNAME"
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to restart VM: $CLIENT_HOSTNAME"
+        return 1
+    fi
+
+    sleep 5
 
     msg_info "Client VM setup complete. Connect using RDP."
 }
 
 function client_vm_rdp() {
-    
+    local REMMINA_FILE="/tmp/${CLIENT_HOSTNAME}.remmina"
     multipass start "$CLIENT_HOSTNAME"
 
     # Ottieni l'indirizzo IP
@@ -242,15 +288,29 @@ gateway_username=
 gateway_password=
 EOF
 
-    # Avvia Remmina con il file .remmina
-    remmina -c /tmp/${CLIENT_HOSTNAME}.remmina > /dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
+    # Avvia Remmina in background e sopprimi l'output
+    nohup remmina -c "$REMMINA_FILE" > /dev/null 2>&1 &
+    REMMINA_PID=$!
+    disown "$REMMINA_PID"
+
+    if [[ $REMMINA_PID -eq 0 ]]; then
         msg_error "Failed to start Remmina"
+        rm -f "$REMMINA_FILE"
         return 1
     fi
 
-    # Rimuovi il file .remmina temporaneo
-    rm /tmp/${CLIENT_HOSTNAME}.remmina
+    msg_info "RDP connection to $CLIENT_HOSTNAME started in background (PID: $REMMINA_PID)."
+
+    # Funzione per eliminare il file .remmina quando Remmina termina
+    cleanup() {
+        if [[ -f "$REMMINA_FILE" ]]; then
+            rm -f "$REMMINA_FILE"
+            msg_info "Removed temporary Remmina file."
+        fi
+    }
+
+    # Imposta il trap per chiamare cleanup quando Remmina termina
+    trap cleanup EXIT
 }
 
 function client_vm_remove() {

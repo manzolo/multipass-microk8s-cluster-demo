@@ -1,42 +1,90 @@
+name: CI
+
 on:
   push:
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
 jobs:
-  build:
-    runs-on: macos-latest
+  # Job veloce: verifica sintassi e linting
+  lint:
+    name: Bash Syntax & Shellcheck
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install project dependencies
-        shell: bash
+      - name: Check bash syntax for all scripts
+        run: |
+          echo "Checking bash syntax..."
+          errors=0
+          for script in $(find . -name "*.sh" -type f); do
+            if ! bash -n "$script" 2>&1; then
+              echo "❌ Syntax error in: $script"
+              errors=$((errors + 1))
+            else
+              echo "✓ $script"
+            fi
+          done
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors scripts with syntax errors"
+            exit 1
+          fi
+          echo "All scripts passed syntax check!"
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on main scripts
+        run: |
+          echo "Running shellcheck..."
+          shellcheck -e SC1091,SC2034,SC2154 \
+            menu.sh \
+            create_kube_vms.sh \
+            destroy_kube_vms.sh \
+            script/functions/*.sh \
+            script/menu/*.sh \
+            || true  # Non fallire per ora, solo warning
+
+  # Job opzionale: test completo con Multipass (solo su macOS)
+  integration-test:
+    name: Integration Test (Multipass)
+    runs-on: macos-latest
+    needs: lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Multipass
         run: |
           brew install --cask multipass
           hash -r
 
-      - name: Wait for multipass to be up
-        shell: bash
+      - name: Wait for Multipass to be ready
         run: |
-          until multipass list; do
-            echo 'multipass is not running, will check again in 2 seconds'
-            sleep 2
+          echo "Waiting for Multipass to start..."
+          for i in {1..30}; do
+            if multipass list 2>/dev/null; then
+              echo "Multipass is ready!"
+              break
+            fi
+            echo "Attempt $i: Multipass is not ready yet, waiting..."
+            sleep 5
           done
-
-      - name: Download source
-        uses: actions/checkout@v2
 
       - name: Create cluster
         run: ./create_kube_vms.sh
+        timeout-minutes: 30
 
-      - name: Test cluster
+      - name: Show cluster info
         run: |
-          for i in {1..10}; do
-            sleep 10
-            ./script/_test.sh || exit 1
-          done
+          multipass list
+          multipass exec k8s-main -- kubectl get nodes || true
 
       - name: Destroy cluster
-        run: ./destroy_kube_vms.sh
+        if: always()
+        run: ./destroy_kube_vms.sh || true

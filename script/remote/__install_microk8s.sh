@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# MicroK8s version to install (passed as argument, default: 1.32)
+MICROK8S_VERSION="${1:-1.32}"
+
 # # Funzione per verificare lo stato dei Pods
 # check_pods() {
 #   kubectl get pods -n longhorn-system 2>/dev/null | grep -v 'Running\|Completed' >/dev/null
@@ -132,7 +135,8 @@ sudo swapoff -a
 #sudo apt update -qq > /dev/null 2>&1
 #sudo apt install -qqy nfs-common > /dev/null 2>&1
 sudo snap install --stable snapd > /dev/null 2>&1
-sudo snap install microk8s --classic --stable
+echo "Installing MicroK8s version: ${MICROK8S_VERSION}/stable"
+sudo snap install microk8s --classic --channel="${MICROK8S_VERSION}/stable"
 #sudo snap install microk8s --channel=latest/stable --classic
 #https://github.com/canonical/microk8s/issues/4361
 #sudo touch /var/snap/microk8s/7661/var/kubernetes/backend/localnode.yaml > /dev/null

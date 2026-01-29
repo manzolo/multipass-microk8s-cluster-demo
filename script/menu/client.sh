@@ -1,5 +1,8 @@
+#!/bin/bash
+
 # Function to handle client management
 client_management() {
+    local choice
     local options=(
         "Install" "Install client VM"
         "Start" "Start client VM"

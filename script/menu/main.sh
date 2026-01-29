@@ -1,6 +1,8 @@
+#!/bin/bash
+
 # Function to display the menu
 display_menu() {
-    local title=$1
+    local title="$1"
     local options=("${!2}")
     whiptail --title "$title" --menu "Select an option:" 25 80 15 "${options[@]}" 3>&1 1>&2 2>&3
 }
@@ -18,6 +20,7 @@ uninstall_all(){
 
 # Main menu
 main_menu() {
+    local choice
     local options=(
         "Cluster Management" "Manage Kubernetes cluster"
         "DNS Management" "Manage local cluster DNS server"

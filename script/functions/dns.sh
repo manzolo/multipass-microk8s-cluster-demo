@@ -1,15 +1,20 @@
+#!/bin/bash
+
 # Funzione per aggiungere una macchina al DNS
 add_machine_to_dns() {
-    local machine_name=$1
-    local machine_ip=$2  # Secondo parametro opzionale: IP della macchina
+    local machine_name="$1"
+    local machine_ip="${2:-}"  # Secondo parametro opzionale: IP della macchina
+    local DNS_IP
+    local config_filename
+    local config_content
 
     DNS_IP=$(get_vm_ip "$DNS_VM_NAME")
 
     # Se l'IP non è fornito, prova a ottenerlo automaticamente (solo se è una VM Multipass)
-    if [ -z "$machine_ip" ]; then
+    if [[ -z "$machine_ip" ]]; then
         if multipass list | grep -q "$machine_name"; then
             machine_ip=$(get_vm_ip "$machine_name")
-            if [ -z "$machine_ip" ]; then
+            if [[ -z "$machine_ip" ]]; then
                 msg_error "Unable to obtain $machine_name IP"
                 return 1
             fi
@@ -54,7 +59,7 @@ EOF
 }
 
 remove_machine_from_dns() {
-    local machine_name=$1
+    local machine_name="$1"
 
     msg_warn "Remove $machine_name.$DNS_SUFFIX from DNS on $DNS_VM_NAME"
     
@@ -77,9 +82,11 @@ restart_dns_service() {
 }
 
 function add_dns_to_host() {
+    local DNS_IP
+    local CONF_DIR="/etc/systemd/resolved.conf.d"
+    local CONF_FILE="$CONF_DIR/multipass-dns.conf"
+
     DNS_IP=$(get_vm_ip "$DNS_VM_NAME")
-    CONF_DIR="/etc/systemd/resolved.conf.d"
-    CONF_FILE="$CONF_DIR/multipass-dns.conf"
 
     # Crea la directory di configurazione se non esiste
     sudo mkdir -p "$CONF_DIR"
@@ -87,7 +94,7 @@ function add_dns_to_host() {
     # Crea il file di configurazione
     msg_info "Add DNS server $DNS_IP for .${DNS_SUFFIX} domain..."
 
-    sudo tee ${CONF_FILE} > /dev/null 2>&1 <<EOF
+    sudo tee "$CONF_FILE" > /dev/null 2>&1 <<EOF
     [Match]
     Domains=*.${DNS_SUFFIX}
 
@@ -105,11 +112,11 @@ EOF
 }
 
 function remove_dns_from_host(){
-    CONF_DIR="/etc/systemd/resolved.conf.d"
-    CONF_FILE="$CONF_DIR/multipass-dns.conf"
+    local CONF_DIR="/etc/systemd/resolved.conf.d"
+    local CONF_FILE="$CONF_DIR/multipass-dns.conf"
 
     # Verifica se il file di configurazione esiste
-    if [ -f "$CONF_FILE" ]; then
+    if [[ -f "$CONF_FILE" ]]; then
         msg_info "Removing DNS server configuration..."
         sudo rm "$CONF_FILE"
         
@@ -133,7 +140,8 @@ create_dns_vm() {
 
 # Function to install and configure dnsmasq
 install_dnsmasq() {
-    local _DNS_IP=$(get_vm_ip "$DNS_VM_NAME")
+    local _DNS_IP
+    _DNS_IP=$(get_vm_ip "$DNS_VM_NAME")
 
     msg_info "Installing dnsmasq on $DNS_VM_NAME"
 

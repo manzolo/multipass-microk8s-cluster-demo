@@ -1,20 +1,32 @@
 #!/bin/bash
-set -e
+
+set -euo pipefail
+
+SCRIPT_DIR="$(dirname "$0")"
 
 # Include functions
-source $(dirname $0)/script/functions/common.sh
-source $(dirname $0)/script/functions/node.sh
-source $(dirname $0)/script/functions/vm.sh
-source $(dirname $0)/script/functions/dns.sh
-source $(dirname $0)/script/functions/nginx.sh
-source $(dirname $0)/script/functions/rancher.sh
-source $(dirname $0)/script/functions/cluster.sh
-source $(dirname $0)/script/functions/motd.sh
+# shellcheck source=script/functions/common.sh
+source "${SCRIPT_DIR}/script/functions/common.sh"
+# shellcheck source=script/functions/node.sh
+source "${SCRIPT_DIR}/script/functions/node.sh"
+# shellcheck source=script/functions/vm.sh
+source "${SCRIPT_DIR}/script/functions/vm.sh"
+# shellcheck source=script/functions/dns.sh
+source "${SCRIPT_DIR}/script/functions/dns.sh"
+# shellcheck source=script/functions/nginx.sh
+source "${SCRIPT_DIR}/script/functions/nginx.sh"
+# shellcheck source=script/functions/rancher.sh
+source "${SCRIPT_DIR}/script/functions/rancher.sh"
+# shellcheck source=script/functions/cluster.sh
+source "${SCRIPT_DIR}/script/functions/cluster.sh"
+# shellcheck source=script/functions/motd.sh
+source "${SCRIPT_DIR}/script/functions/motd.sh"
 
 create_env_local
 
 # Load default values and environment variables
-source $(dirname $0)/script/functions/load_env.sh
+# shellcheck source=script/functions/load_env.sh
+source "${SCRIPT_DIR}/script/functions/load_env.sh"
 
 # Validate inputs
 validate_inputs

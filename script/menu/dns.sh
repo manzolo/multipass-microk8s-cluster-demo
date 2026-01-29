@@ -1,5 +1,8 @@
+#!/bin/bash
+
 # Function to handle DNS management
 dns_management() {
+    local choice
     local options=(
         "Add DNS Configuration" "Add a custom local cluster DNS configuration"
         "Remove DNS Configuration" "Remove the custom local DNS configuration"

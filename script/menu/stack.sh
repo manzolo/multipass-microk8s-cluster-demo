@@ -1,8 +1,15 @@
+#!/bin/bash
+
 # Function to handle stack management
 stack_management() {
     local config_dir="config"
     local options=()
     local services=()
+    local file
+    local service
+    local human_service
+    local choice
+    local i
 
     # Itera su ogni file YAML nella cartella dei config
     for file in "$config_dir"/*.yaml; do
@@ -30,10 +37,13 @@ stack_management() {
 }
 
 # Function to manage a specific stack
-# Function to manage a specific stack
 manage_stack() {
-    local stack_name=$1
-    local namespace=$2
+    local stack_name="$1"
+    local namespace="$2"
+    local choice
+    local pod_name
+    local deployment_name
+    local replicas
     local options=(
         "Check Status" "Show the status of all resources in the $stack_name stack"
         "View Pod Logs" "View logs of a specific pod in the $stack_name stack"
@@ -60,7 +70,7 @@ manage_stack() {
                 echo
                 ;;
             "View Pod Logs")
-                local pod_name=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get pods -n "$namespace" -o name | head -n 1)
+                pod_name=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get pods -n "$namespace" -o name | head -n 1)
                 if [[ -n "$pod_name" ]]; then
                     multipass exec "${VM_MAIN_NAME}" -- kubectl logs "$pod_name" -n "$namespace" && \
                     msg_info "Logs for pod $pod_name in namespace $namespace." || \
@@ -80,13 +90,13 @@ manage_stack() {
                 ;;
             "Scale Stack")
                 # Ottieni il nome del deployment nel namespace specificato
-                local deployment_name=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get deployments -n "$namespace" -o jsonpath='{.items[0].metadata.name}')
-                
+                deployment_name=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get deployments -n "$namespace" -o jsonpath='{.items[0].metadata.name}')
+
                 if [[ -z "$deployment_name" ]]; then
                     msg_error "No deployment found in namespace $namespace."
                 else
                     # Chiedi all'utente il numero di repliche
-                    local replicas=$(whiptail --inputbox "Enter the number of replicas:" 10 60 3>&1 1>&2 2>&3)
+                    replicas=$(whiptail --inputbox "Enter the number of replicas:" 10 60 3>&1 1>&2 2>&3)
                     
                     if [[ -n "$replicas" ]]; then
                         # Esegui il comando di scale
@@ -133,13 +143,23 @@ manage_stack() {
 
 # Function to handle .env file management
 env_management() {
+    local options
+    local file
+    local service
+    local env_var
+    local current_value
+    local choice
+    local key
+
     while true; do
+        # shellcheck source=/dev/null
         source .env
-        if [ -f .env.local ]; then
+        if [[ -f .env.local ]]; then
+            # shellcheck source=/dev/null
             source .env.local
         fi
 
-        local options=()
+        options=()
 
         for file in config/*.yaml; do
             service=$(basename "$file" .yaml)
@@ -147,7 +167,7 @@ env_management() {
 
             if grep -q "^$env_var=" .env; then
                 current_value=$(grep "^$env_var=" .env | cut -d= -f2)
-            elif [ -f .env.local ] && grep -q "^$env_var=" .env.local; then
+            elif [[ -f .env.local ]] && grep -q "^$env_var=" .env.local; then
                 current_value=$(grep "^$env_var=" .env.local | cut -d= -f2)
             else
                 current_value="false"
@@ -171,10 +191,15 @@ env_management() {
 
 # Function to toggle a boolean value in .env or .env.local and apply/delete Kubernetes resources
 toggle_env_value() {
-    local key=$1
+    local key="$1"
     local file=".env"
+    local current_value
+    local new_value
+    local action
+    local namespace
+    local yaml_file
 
-    if [ -f .env.local ]; then
+    if [[ -f .env.local ]]; then
         file=".env.local"
     else
         touch .env.local
@@ -204,8 +229,8 @@ toggle_env_value() {
 
     msg_info "$key toggled to $new_value."
 
-    local namespace=$(echo "$key" | cut -d_ -f2- | tr '[:upper:]_' '[:lower:]-')
-    local yaml_file="microk8s_demo_config/${namespace}.yaml"
+    namespace=$(echo "$key" | cut -d_ -f2- | tr '[:upper:]_' '[:lower:]-')
+    yaml_file="microk8s_demo_config/${namespace}.yaml"
 
     deploy_stack "$namespace" "$yaml_file" "$action"
 
@@ -214,9 +239,9 @@ toggle_env_value() {
 }
 
 function deploy_stack() {
-    local namespace=$1
-    local yaml_file=$2
-    local action=$3
+    local namespace="$1"
+    local yaml_file="$2"
+    local action="$3"
 
     if multipass list | grep -q "${VM_MAIN_NAME}"; then
         if [[ "$action" == "delete" ]]; then
@@ -238,6 +263,7 @@ function deploy_stack() {
 
 # Function to handle stack and environment management
 stack_and_env_management() {
+    local choice
     local options=(
         "Stack Management" "Manage all stacks (MariaDB, ELK, MongoDB, etc.)"
         "Env Management" "Manage .env file settings"

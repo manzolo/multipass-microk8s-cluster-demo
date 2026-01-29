@@ -1,5 +1,8 @@
+#!/bin/bash
+
 # Function to handle Rancher management
 rancher_management() {
+    local choice
     local options=(
         "Create Rancher" "Create Rancher"
         "Start Rancher" "Start Rancher"

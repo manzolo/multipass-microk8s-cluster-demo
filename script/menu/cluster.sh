@@ -1,5 +1,18 @@
+#!/bin/bash
+
 # Function to handle cluster management
 cluster_management() {
+    local choice
+    local node_list
+    local node_array
+    local num_nodes
+    local menu_items
+    local node
+    local node_status
+    local menu_message
+    local selected_node
+    local return_code
+    local selected_node_status
     local options=(
         "Create Cluster" "Create a Kubernetes cluster"
         "Start Cluster" "Start the Kubernetes cluster"
@@ -49,9 +62,10 @@ cluster_management() {
                 ;;
             "Remove Cluster Node")
                 # Ottieni la lista dei nodi con prefisso VM_NODE_PREFIX
-                local node_list=$(multipass list | grep "${VM_NODE_PREFIX}" | awk '{print $1}')
-                local node_array=($(echo "$node_list"))
-                local num_nodes=${#node_array[@]}
+                node_list=$(multipass list | grep "${VM_NODE_PREFIX}" | awk '{print $1}' || true)
+                # shellcheck disable=SC2206
+                node_array=($node_list)
+                num_nodes=${#node_array[@]}
 
                 # Se non ci sono nodi, mostra un avviso e torna al menu principale
                 if [[ $num_nodes -eq 0 ]]; then
@@ -63,15 +77,15 @@ cluster_management() {
                 fi
 
                 # Crea il menu con i nomi dei nodi e la descrizione con lo stato
-                local menu_items=()
+                menu_items=()
                 for node in "${node_array[@]}"; do
-                    local node_status=$(multipass info "$node" | grep "State:" | awk '{print $2}')
+                    node_status=$(multipass info "$node" | grep "State:" | awk '{print $2}')
                     menu_items+=("$node") # Aggiungi il nome del nodo
                     menu_items+=("Remove Cluster Node (Status: $node_status)") # Aggiungi la descrizione con lo stato
                 done
 
                 # Crea il messaggio con il numero di nodi e una descrizione delle operazioni
-                local menu_message="Select a node to remove:\n\n"
+                menu_message="Select a node to remove:\n\n"
                 menu_message+="Active nodes: $num_nodes\n\n"
                 menu_message+="This operation will:\n"
                 menu_message+="1. Cordon the node (mark it as unschedulable).\n"
@@ -80,8 +94,8 @@ cluster_management() {
                 menu_message+="4. Delete the node VM from Multipass."
 
                 # Mostra il menu e cattura la selezione
-                local selected_node=$(whiptail --menu "$menu_message" 20 80 10 "${menu_items[@]}" 3>&1 1>&2 2>&3)
-                local return_code=$?
+                selected_node=$(whiptail --menu "$menu_message" 20 80 10 "${menu_items[@]}" 3>&1 1>&2 2>&3)
+                return_code=$?
 
                 # Gestisci la selezione
                 if [[ $return_code -eq 0 ]]; then
@@ -90,7 +104,7 @@ cluster_management() {
                         msg_error "No node selected. Please try again."
                     else
                         # Ottieni lo stato del nodo selezionato
-                        local selected_node_status=$(multipass info "$selected_node" 2>/dev/null | grep "State:" | awk '{print $2}')
+                        selected_node_status=$(multipass info "$selected_node" 2>/dev/null | grep "State:" | awk '{print $2}')
                         
                         # Verifica se il nodo esiste
                         if [[ -z "$selected_node_status" ]]; then

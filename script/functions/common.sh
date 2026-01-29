@@ -1,12 +1,20 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Load .env file if it exists
 if [[ -f .env ]]; then
-  export $(grep -v '^#' .env | xargs) # Export variables from .env, ignoring comments
+  set -a
+  # shellcheck source=/dev/null
+  source .env
+  set +a
 fi
 # Load .env.local file if it exists
 if [[ -f .env.local ]]; then
-  export $(grep -v '^#' .env.local | xargs) # Export variables from .env.local, ignoring comments
+  set -a
+  # shellcheck source=/dev/null
+  source .env.local
+  set +a
 fi
 
 NC=$'\033[0m' # No Color
@@ -36,17 +44,17 @@ function press_any_key() {
 }
 
 check_command_exists() {
-    if ! command -v $1 &> /dev/null
-    then
-        msg_error "$1 could not be found!"
+    local cmd="$1"
+    if ! command -v "$cmd" &> /dev/null; then
+        msg_error "$cmd could not be found!"
         exit 1
     fi
 }
 
 run_command_on_node() {
-    node_name=$1
-    command=$2
-    multipass exec -v ${node_name} -- ${command}
+    local node_name="$1"
+    local cmd="$2"
+    multipass exec -v "$node_name" -- $cmd
 }
 
 function create_env_local() {
@@ -65,22 +73,18 @@ EOF
 
 
 # Funzione per eseguire un comando con un numero massimo di tentativi
+# Uso: retry_command comando arg1 arg2 ...
 function retry_command {
-    local command="$1"
     local max_attempts=3
     local attempt=1
     local wait_time=5
 
-    while [ $attempt -le $max_attempts ]; do
-        #echo "Attempt $attempt for: $command"
-        eval $command
-
-        if [ $? -eq 0 ]; then
-            #echo "Deploy OK."
+    while [[ $attempt -le $max_attempts ]]; do
+        if "$@"; then
             return 0
         else
             echo "Error on deploy. Attempt $attempt of $max_attempts."
-            sleep $wait_time
+            sleep "$wait_time"
         fi
 
         attempt=$((attempt + 1))
@@ -90,16 +94,17 @@ function retry_command {
     return 1
 }
 
-# Funzione per ottenere l'IP della vm
-force_stop_vm() {
-    vm_name=$1
-    multipass stop --force ${vm_name}
+# Funzione per forzare lo stop di una VM
+do_force_stop_vm() {
+    local vm_name="$1"
+    multipass stop --force "$vm_name"
 }
 
 function get_num_instances() {
-  local count=$(multipass list | grep "${VM_NODE_PREFIX}" | wc -l)
-  if [ "$count" -eq 0 ]; then
-    echo "$instances" # Restituisce il valore pre-esistente di $instances
+  local count
+  count=$(multipass list | grep "${VM_NODE_PREFIX}" | wc -l || echo "0")
+  if [[ "$count" -eq 0 ]]; then
+    echo "${instances:-0}" # Restituisce il valore pre-esistente di $instances o 0
   else
     echo "$count" # Restituisce il conteggio di wc -l
   fi
@@ -107,11 +112,19 @@ function get_num_instances() {
 
 # Funzione per ottenere l'IP della vm
 get_vm_ip() {
-    vm_name=$1
-    echo $(multipass info "${vm_name}" | grep IPv4 | awk '{print $2}')
+    local vm_name="$1"
+    multipass info "$vm_name" | grep IPv4 | awk '{print $2}'
 }
 
 function print_service_table() {
+    local IP
+    local main_state
+    local services
+    local service_info
+    local service_name
+    local namespace
+    local nodeport
+
     IP=$(get_vm_ip "$VM_MAIN_NAME")
 
     echo
@@ -120,15 +133,15 @@ function print_service_table() {
     printf "${BLUE}%-20s | %-15s | %-10s | %-30s${NC}\n" "Service Name" "Namespace" "NodePort" "URL"
     printf "${BLUE}------------------------------------------------------------------------------------${NC}\n"
 
-    local main_state=$(multipass info k8s-main | grep "State:" | awk '{print $2}')
+    main_state=$(multipass info k8s-main | grep "State:" | awk '{print $2}')
 
     if [[ "$main_state" == "Running" ]]; then
 
         # Recupera tutti i servizi e le loro informazioni in un'unica chiamata, escludendo i namespace di sistema
-        local services=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get services --all-namespaces -o json --field-selector metadata.namespace!=kube-system,metadata.namespace!=kube-public,metadata.namespace!=kube-node-lease,metadata.namespace!=default)
+        services=$(multipass exec "${VM_MAIN_NAME}" -- kubectl get services --all-namespaces -o json --field-selector metadata.namespace!=kube-system,metadata.namespace!=kube-public,metadata.namespace!=kube-node-lease,metadata.namespace!=default)
 
         # Estrai le informazioni usando jq
-        local service_info=$(echo "$services" | jq -r '.items[] | [.metadata.name, .metadata.namespace, .spec.ports[0].nodePort] | @tsv')
+        service_info=$(echo "$services" | jq -r '.items[] | [.metadata.name, .metadata.namespace, .spec.ports[0].nodePort] | @tsv')
 
         # Stampa le righe della tabella
         while IFS=$'\t' read -r service_name namespace nodeport; do
@@ -169,6 +182,8 @@ function print_multipass_vm() {
 }
 
 function print_cluster_info(){
+    local main_state
+
     # Intestazione della tabella Kubernetes
     echo
     echo
@@ -177,7 +192,7 @@ function print_cluster_info(){
     printf "${BLUE}---------------------------------------------------------------${NC}\n"
 
     # Verifica lo stato di k8s-main
-    local main_state=$(multipass info k8s-main | grep "State:" | awk '{print $2}')
+    main_state=$(multipass info k8s-main | grep "State:" | awk '{print $2}')
 
     # Estrai le informazioni e formatta la tabella Kubernetes solo se k8s-main è in esecuzione
     if [[ "$main_state" == "Running" ]]; then
@@ -208,10 +223,57 @@ function show_cluster_info() {
     local YELLOW='\033[1;33m'
     local BLUE='\033[0;34m'
     local NC='\033[0m' # No Color
-    
+
     print_multipass_vm
 
     print_cluster_info
-    
+
     print_service_table
+}
+
+# Debug mode: set DEBUG=1 to enable verbose logging
+DEBUG="${DEBUG:-0}"
+
+# Debug logging function
+msg_debug() {
+    if [[ "$DEBUG" == "1" ]]; then
+        local CYAN=$'\033[0;36m'
+        printf "%s\n" "${CYAN}[DEBUG] ${*}${NC}" >&2
+    fi
+}
+
+# Safe multipass wrapper with logging and error handling
+# Usage: safe_multipass <subcommand> [args...]
+safe_multipass() {
+    local subcommand="$1"
+    shift
+    local exit_code=0
+
+    msg_debug "multipass $subcommand $*"
+
+    if ! multipass "$subcommand" "$@"; then
+        exit_code=$?
+        msg_debug "multipass $subcommand failed with exit code $exit_code"
+        return $exit_code
+    fi
+
+    return 0
+}
+
+# Kubectl exec wrapper via multipass
+# Usage: kubectl_exec <vm_name> <kubectl_args...>
+kubectl_exec() {
+    local vm_name="$1"
+    shift
+    local exit_code=0
+
+    msg_debug "kubectl on $vm_name: $*"
+
+    if ! multipass exec "$vm_name" -- kubectl "$@"; then
+        exit_code=$?
+        msg_debug "kubectl failed with exit code $exit_code"
+        return $exit_code
+    fi
+
+    return 0
 }

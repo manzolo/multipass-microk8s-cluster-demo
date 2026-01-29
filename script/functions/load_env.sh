@@ -1,8 +1,8 @@
 #!/bin/bash
-#set -x
 
 # Default values (fallback if not in .env and .env.local)
 DEFAULT_UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}"
+DEFAULT_MICROK8S_VERSION="${MICROK8S_VERSION:-1.32}"
 DEFAULT_INSTANCES="${INSTANCES:-2}"
 DEFAULT_MAIN_CPU="${MAIN_CPU:-2}"
 DEFAULT_MAIN_RAM="${MAIN_RAM:-2Gb}"
@@ -22,12 +22,14 @@ DEFAULT_DEPLOY_RABBITMQ="${DEPLOY_RABBITMQ:-false}"
 DEFAULT_DEPLOY_JENKINS="${DEPLOY_JENKINS:-false}"
 
 # Load .env file if it exists
-if [ -f .env ]; then
+if [[ -f .env ]]; then
+    # shellcheck source=/dev/null
     source .env
 fi
 
 # Load .env.local file if it exists
-if [ -f .env.local ]; then
+if [[ -f .env.local ]]; then
+    # shellcheck source=/dev/null
     source .env.local
 fi
 
@@ -49,14 +51,8 @@ deploy_redis="${DEPLOY_REDIS:-$DEFAULT_DEPLOY_REDIS}"
 deploy_rabbitmq="${DEPLOY_RABBITMQ:-$DEFAULT_DEPLOY_RABBITMQ}"
 deploy_jenkins="${DEPLOY_JENKINS:-$DEFAULT_DEPLOY_JENKINS}"
 node_template="${NODE_TEMPLATE:-$DEFAULT_NODE_TEMPLATE}"
-force_stop_vm="${FORCE_STOP_VM:-$DEFAULT_FORCE_STOP_VM}"
+do_force_stop="${FORCE_STOP_VM:-$DEFAULT_FORCE_STOP_VM}"
+microk8s_version="${MICROK8S_VERSION:-$DEFAULT_MICROK8S_VERSION}"
 
-# echo "instances: $instances"
-# echo "mainCpu: $mainCpu"
-# echo "mainRam: $mainRam"
-# echo "mainHddGb: $mainHddGb"
-# echo "deploy_demo_go: $deploy_demo_go"
-# echo "force_stop_vm: $force_stop_vm"
-
-INSTALL_DIR=$(dirname $0)
-CONFIG_DIR=${INSTALL_DIR}/config
+INSTALL_DIR="$(dirname "$0")"
+CONFIG_DIR="${INSTALL_DIR}/config"

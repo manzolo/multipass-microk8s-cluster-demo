@@ -4,10 +4,10 @@ set -e
 
 # Function to create a VM and run commands
 create_and_configure_rancher_vm() {
-    local VM_NAME=$1
-    local RAM=$2
-    local HDD=$3
-    local CPU=$4
+    local VM_NAME="$1"
+    local RAM="$2"
+    local HDD="$3"
+    local CPU="$4"
 
     msg_warn "Creating and configuring VM: $VM_NAME"
 
@@ -28,8 +28,9 @@ create_and_configure_rancher_vm() {
 
 # Function to configure DNS resolution
 configure_rancher_dns_resolution() {
-    local VM_NAME=$1
-    local DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
+    local VM_NAME="$1"
+    local DNS_IP
+    DNS_IP=$(multipass info "$DNS_VM_NAME" | grep IPv4 | awk '{print $2}')
     multipass exec "$VM_NAME" -- sudo bash -c 'cat > /etc/resolv.conf <<EOF
 nameserver '"$DNS_IP"'
 EOF'
@@ -37,7 +38,7 @@ EOF'
 
 # Function to start Rancher
 start_rancher() {
-    local VM_NAME=$1
+    local VM_NAME="$1"
     msg_info "Starting Rancher on $VM_NAME using Docker Compose..."
     multipass exec "$VM_NAME" -- bash -c 'cat > docker-compose.yml <<EOF
 services:
@@ -64,7 +65,7 @@ EOF'
 
 # Function to show Rancher info
 show_rancher_info() {
-    local VM_NAME=$1
+    local VM_NAME="$1"
     multipass info "$VM_NAME"
     echo "Rancher installation completed."
 }
@@ -72,22 +73,28 @@ show_rancher_info() {
 
 # Function to wait for Rancher bootstrap password
 wait_for_rancher_password() {
-    msg_warn "Waiting rancher start..."
     local timeout_seconds=300
-    local start_time=$(date +%s)
+    local start_time
+    local elapsed_time
+    local PASSWORD
+    local RANCHER_URL
+    local vm_ip
+
+    msg_warn "Waiting rancher start..."
+    start_time=$(date +%s)
 
     set +e
 
     while true; do
-        local elapsed_time=$(( $(date +%s) - start_time ))
+        elapsed_time=$(( $(date +%s) - start_time ))
         if [[ "$elapsed_time" -gt "$timeout_seconds" ]]; then
             msg_error "Timeout: Bootstrap password not found within $timeout_seconds seconds."
             exit 1
         fi
 
-        local PASSWORD=$(multipass exec "${RANCHER_HOSTNAME}" -- docker logs rancher 2>&1 | grep "Bootstrap Password:" | awk '{print $NF}')
+        PASSWORD=$(multipass exec "${RANCHER_HOSTNAME}" -- docker logs rancher 2>&1 | grep "Bootstrap Password:" | awk '{print $NF}')
         if [[ -n "$PASSWORD" ]]; then
-            local RANCHER_URL="https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=$PASSWORD"
+            RANCHER_URL="https://${RANCHER_HOSTNAME}.${DNS_SUFFIX}/dashboard/?setup=$PASSWORD"
             msg_info "Use the following link to complete the Rancher setup:"
             vm_ip=$(get_vm_ip "${RANCHER_HOSTNAME}")
             msg_warn "https://${vm_ip}/dashboard/?setup=${PASSWORD}"
@@ -108,10 +115,10 @@ function create_rancher() {
 }
 
 function destroy_rancher() {
-    remove_machine_from_dns $RANCHER_HOSTNAME
+    remove_machine_from_dns "$RANCHER_HOSTNAME"
     restart_dns_service
 
-    multipass stop --force ${RANCHER_HOSTNAME} > /dev/null 2>&1
-    multipass delete --purge ${RANCHER_HOSTNAME} > /dev/null 2>&1
-    multipass purge > /dev/null 2>&1
+    multipass stop --force "${RANCHER_HOSTNAME}" > /dev/null 2>&1 || true
+    multipass delete --purge "${RANCHER_HOSTNAME}" > /dev/null 2>&1 || true
+    multipass purge > /dev/null 2>&1 || true
 }

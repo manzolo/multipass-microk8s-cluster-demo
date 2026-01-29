@@ -3,24 +3,25 @@
 set -e
 
 function get_available_node_number() {
-  local existing_nodes
-  local available_num=1
+    local existing_nodes
+    local available_num=1
+    local num
 
-  # Ottieni i numeri dei nodi esistenti e ordinali
-  existing_nodes=$(multipass list | grep "$VM_NODE_PREFIX" | awk '{print $1}' | sed "s/${VM_NODE_PREFIX}//" | sort -n)
+    # Ottieni i numeri dei nodi esistenti e ordinali
+    existing_nodes=$(multipass list | grep "$VM_NODE_PREFIX" | awk '{print $1}' | sed "s/${VM_NODE_PREFIX}//" | sort -n || true)
 
-  # Trova il primo numero disponibile
-  if [ -n "$existing_nodes" ]; then
-    for num in $existing_nodes; do
-      if [[ $num -eq $available_num ]]; then
-        available_num=$((available_num + 1))
-      else
-        break
-      fi
-    done
-  fi
+    # Trova il primo numero disponibile
+    if [[ -n "$existing_nodes" ]]; then
+        for num in $existing_nodes; do
+            if [[ $num -eq $available_num ]]; then
+                available_num=$((available_num + 1))
+            else
+                break
+            fi
+        done
+    fi
 
-  echo "$available_num"
+    echo "$available_num"
 }
 
 function wait_for_microk8s_ready() {
@@ -35,117 +36,112 @@ function wait_for_microk8s_ready() {
 }
 
 function restart_microk8s_nodes() {
-  local prefix="$VM_NODE_PREFIX"
-  local retries=3  # Numero massimo di tentativi
-  local node_name
+    local retries=3  # Numero massimo di tentativi
+    local node_name
+    local nodes_status
+    local not_ready_nodes
 
-  msg_info "Checking nodes status..."
+    msg_info "Checking nodes status..."
 
-  # Ottieni lo stato dei nodi
-  local nodes_status=$(multipass exec "$VM_MAIN_NAME" -- kubectl get nodes)
+    # Ottieni lo stato dei nodi
+    nodes_status=$(multipass exec "$VM_MAIN_NAME" -- kubectl get nodes)
 
-  # Trova tutti i nodi NotReady
-  local not_ready_nodes=$(echo "$nodes_status" | grep "NotReady" | awk '{print $1}')
+    # Trova tutti i nodi NotReady (|| true per evitare exit 1 se grep non trova match)
+    not_ready_nodes=$(echo "$nodes_status" | grep "NotReady" | awk '{print $1}' || true)
 
-  # Se ci sono nodi NotReady, riavviali
-  if [[ -n "$not_ready_nodes" ]]; then
-    for node_name in $not_ready_nodes; do
-      msg_warn "Restarting MicroK8s on $node_name..."
-      restart_node "$node_name" "$retries"
-    done
-  else
-    msg_info "All nodes are ready. Skipping restart."
-  fi
+    # Se ci sono nodi NotReady, riavviali
+    if [[ -n "$not_ready_nodes" ]]; then
+        for node_name in $not_ready_nodes; do
+            msg_warn "Restarting MicroK8s on $node_name..."
+            restart_node "$node_name" "$retries"
+        done
+    else
+        msg_info "All nodes are ready. Skipping restart."
+    fi
 
-  msg_info "MicroK8s restart process completed."
+    msg_info "MicroK8s restart process completed."
 }
 
 function restart_node() {
-  local node_name=$1
-  local retries=$2
-  local attempt
-  local reached=false
-  local inspected=false
-  local restarted=false
-  local ready=false
+    local node_name="$1"
+    local retries="$2"
+    local attempt
+    local inspected=false
+    local restarted=false
+    local ready=false
 
-  # Verifica se il nodo è raggiungibile
-  if ! multipass exec "$node_name" -- "true" > /dev/null 2>&1; then
-    msg_error "Node $node_name is not reachable. Skipping restart."
-    return
-  fi
-
-  # Esegue l'ispezione per identificare eventuali problemi (con tentativi)
-  msg_warn "Running microk8s inspect on $node_name..."
-  attempt=1
-  while [[ $attempt -le $retries ]]; do
-    if multipass exec "$node_name" -- sudo microk8s inspect > /dev/null 2>&1; then
-      inspected=true
-      break # Comando riuscito, esci dal ciclo
-    else
-      attempt=$((attempt + 1))
-      sleep 2
+    # Verifica se il nodo è raggiungibile
+    if ! multipass exec "$node_name" -- "true" > /dev/null 2>&1; then
+        msg_error "Node $node_name is not reachable. Skipping restart."
+        return
     fi
-  done
 
-  #if ! $inspected; then
-  #  msg_error "All attempts failed for microk8s inspect on $node_name. Skipping restart."
-  #  return
-  #fi
+    # Esegue l'ispezione per identificare eventuali problemi (con tentativi)
+    msg_warn "Running microk8s inspect on $node_name..."
+    attempt=1
+    while [[ $attempt -le $retries ]]; do
+        if multipass exec "$node_name" -- sudo microk8s inspect > /dev/null 2>&1; then
+            inspected=true
+            break # Comando riuscito, esci dal ciclo
+        else
+            attempt=$((attempt + 1))
+            sleep 2
+        fi
+    done
 
-  # Riavvia MicroK8s (con tentativi)
-  msg_warn "Restarting MicroK8s on $node_name..."
-  attempt=1
-  while [[ $attempt -le $retries ]]; do
-    if multipass exec "$node_name" -- sudo snap restart microk8s > /dev/null 2>&1; then
-      restarted=true
-      break # Comando riuscito, esci dal ciclo
-    else
-      attempt=$((attempt + 1))
-      sleep 2
+    # Riavvia MicroK8s (con tentativi)
+    msg_warn "Restarting MicroK8s on $node_name..."
+    attempt=1
+    while [[ $attempt -le $retries ]]; do
+        if multipass exec "$node_name" -- sudo snap restart microk8s > /dev/null 2>&1; then
+            restarted=true
+            break # Comando riuscito, esci dal ciclo
+        else
+            attempt=$((attempt + 1))
+            sleep 2
+        fi
+    done
+
+    if ! $restarted; then
+        msg_error "All attempts failed to restart MicroK8s on $node_name. Skipping restart."
+        return
     fi
-  done
 
-  if ! $restarted; then
-    msg_error "All attempts failed to restart MicroK8s on $node_name. Skipping restart."
-    return
-  fi
+    # Attende che MicroK8s sia pronto (con tentativi)
+    msg_warn "Waiting for MicroK8s to be ready on $node_name..."
+    attempt=1
+    while [[ $attempt -le $retries ]]; do
+        if wait_for_microk8s_ready "$node_name"; then
+            ready=true
+            msg_info "MicroK8s restarted and ready on $node_name."
+            break # Comando riuscito, esci dal ciclo
+        else
+            attempt=$((attempt + 1))
+            sleep 2
+        fi
+    done
 
-  # Attende che MicroK8s sia pronto (con tentativi)
-  msg_warn "Waiting for MicroK8s to be ready on $node_name..."
-  attempt=1
-  while [[ $attempt -le $retries ]]; do
-    if wait_for_microk8s_ready "$node_name"; then
-      ready=true
-      msg_info "MicroK8s restarted and ready on $node_name."
-      break # Comando riuscito, esci dal ciclo
-    else
-      attempt=$((attempt + 1))
-      sleep 2
+    if ! $ready; then
+        msg_error "All attempts failed for MicroK8s to become ready on $node_name. Skipping restart."
     fi
-  done
-
-  if ! $ready; then
-    msg_error "All attempts failed for MicroK8s to become ready on $node_name. Skipping restart."
-  fi
 }
 
 function get_max_node_instance() {
-  local prefix="$VM_NODE_PREFIX"
-  local existing_nodes
-  local max_instance
+    local prefix="$VM_NODE_PREFIX"
+    local existing_nodes
+    local max_instance
 
-  # Ottieni i numeri dei nodi esistenti e ordinali
-  existing_nodes=$(multipass list | grep "$prefix" | awk '{print $1}' | sed "s/${prefix}//" | sort -n)
+    # Ottieni i numeri dei nodi esistenti e ordinali
+    existing_nodes=$(multipass list | grep "$prefix" | awk '{print $1}' | sed "s/${prefix}//" | sort -n || true)
 
-  # Trova il numero massimo di istanza
-  if [ -n "$existing_nodes" ]; then
-    max_instance=$(echo "$existing_nodes" | tail -n 1)
-  else
-    max_instance=0 # Se non ci sono nodi, il massimo è 0
-  fi
+    # Trova il numero massimo di istanza
+    if [[ -n "$existing_nodes" ]]; then
+        max_instance=$(echo "$existing_nodes" | tail -n 1)
+    else
+        max_instance=0 # Se non ci sono nodi, il massimo è 0
+    fi
 
-  echo "$max_instance"
+    echo "$max_instance"
 }
 
 # Function to check prerequisites
@@ -156,19 +152,21 @@ check_prerequisites() {
 
 # Function to generate join command
 node_cluster_join() {
-local node_name=$1
+    local node_name="$1"
     local max_retries=3 # Numero massimo di tentativi
     local retry_count=0
+    local CLUSTER_JOIN_COMMAND
 
     msg_warn "Generating join cluster command for $VM_MAIN_NAME"
     multipass transfer script/remote/__join_cluster_helper.sh "$VM_MAIN_NAME:/home/ubuntu/join_cluster_helper.sh"
 
-    local CLUSTER_JOIN_COMMAND=$(multipass exec "$VM_MAIN_NAME" -- /home/ubuntu/join_cluster_helper.sh)
+    CLUSTER_JOIN_COMMAND=$(multipass exec "$VM_MAIN_NAME" -- /home/ubuntu/join_cluster_helper.sh)
     multipass exec "$VM_MAIN_NAME" -- rm -rf /home/ubuntu/join_cluster_helper.sh
 
     msg_warn "Installing microk8s on $node_name"
 
     while [[ $retry_count -lt $max_retries ]]; do
+        # shellcheck disable=SC2086
         if multipass exec "$node_name" -- $CLUSTER_JOIN_COMMAND; then
             msg_info "MicroK8s joined successfully on $node_name."
             return # Comando riuscito, esci dalla funzione
@@ -183,17 +181,24 @@ local node_name=$1
 }
 
 function add_node() {
+    local NUM_VMS
+    local starting_index
+    local new_node_name
+    local node_name
+    local i
+    local current_vm
+
     # Main script execution
     check_prerequisites
 
     # Gestione del parametro opzionale
-    if [[ -n "$1" && "$1" =~ ^[0-9]+$ ]]; then
+    if [[ -n "${1:-}" && "$1" =~ ^[0-9]+$ ]]; then
         NUM_VMS="$1"
     else
         NUM_VMS=1
     fi
 
-    local starting_index=$(get_available_node_number)
+    starting_index=$(get_available_node_number)
 
     # Controllo per evitare l'errore di indice negativo o zero
     if [[ $starting_index -eq 0 ]]; then
@@ -202,7 +207,7 @@ function add_node() {
 
     # Fase di clonazione
     for ((i=1; i<=NUM_VMS; i++)); do
-        local new_node_name="${VM_NODE_PREFIX}${starting_index}"
+        new_node_name="${VM_NODE_PREFIX}${starting_index}"
         msg_warn "Cloning VM: $new_node_name"
         clone_vm "$new_node_name" "$node_template" # Clona sempre dal template
 
@@ -215,7 +220,7 @@ function add_node() {
     msg_warn "Configuring VM nodes..."
     # Fase di configurazione
     for ((current_vm=starting_index - NUM_VMS; current_vm < starting_index; current_vm++)); do
-        local node_name="${VM_NODE_PREFIX}${current_vm}"
+        node_name="${VM_NODE_PREFIX}${current_vm}"
         configure_node_vm "$node_name"
     done
 
@@ -229,7 +234,7 @@ function add_node() {
 
 # Function to configure node VM (configurazione e avvio)
 function configure_node_vm() {
-    local node_name=$1
+    local node_name="$1"
 
     multipass start "$node_name" # Avvia la VM
     sleep 5 # Aggiungi una pausa per permettere a Multipass di aggiornare lo stato
@@ -237,7 +242,6 @@ function configure_node_vm() {
 
     add_machine_to_dns "$node_name"
     restart_dns_service
-    #multipass info "$node_name"
 
     multipass start "$VM_MAIN_NAME"
     wait_for_microk8s_ready "$VM_MAIN_NAME"
@@ -248,12 +252,13 @@ function configure_node_vm() {
 
 function remove_node() {
     local vm_name="$1"
+    local node_count
 
     # Check prerequisites
     check_command_exists "multipass"
 
     # Verifica se è l'ultimo nodo con il prefisso VM_NODE_PREFIX
-    local node_count=$(multipass list | grep "${VM_NODE_PREFIX}" | wc -l)
+    node_count=$(multipass list | grep "${VM_NODE_PREFIX}" | wc -l)
     if [[ "$node_count" -eq 1 ]]; then
         msg_error "Cannot remove the last node with prefix '${VM_NODE_PREFIX}'."
         return 1
@@ -261,16 +266,14 @@ function remove_node() {
 
     # Contrassegna il nodo come non schedulabile
     msg_warn "Cordoning node: $vm_name"
-    run_command_on_node "$VM_MAIN_NAME" "microk8s kubectl cordon $vm_name"
-    if [ $? -ne 0 ]; then
+    if ! run_command_on_node "$VM_MAIN_NAME" "microk8s kubectl cordon $vm_name"; then
         msg_error "Failed to cordon node: $vm_name"
         return 1
     fi
 
     # Esegui il drain del nodo
     msg_warn "Draining node: $vm_name"
-    run_command_on_node "$VM_MAIN_NAME" "microk8s kubectl drain $vm_name --ignore-daemonsets --delete-emptydir-data --force"
-    if [ $? -ne 0 ]; then
+    if ! run_command_on_node "$VM_MAIN_NAME" "microk8s kubectl drain $vm_name --ignore-daemonsets --delete-emptydir-data --force"; then
         msg_error "Failed to drain node: $vm_name"
         return 1
     fi

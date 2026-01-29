@@ -1,5 +1,8 @@
+#!/bin/bash
+
 # Function to handle load balancer management
 load_balancer_management() {
+    local choice
     local options=(
         "Create Nginx Load Balancer" "Create Nginx load balancer"
         "Start Nginx Load Balancer" "Start Nginx load balancer"

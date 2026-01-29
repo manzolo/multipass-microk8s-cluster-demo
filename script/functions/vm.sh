@@ -4,27 +4,26 @@ set -e
 
 # Function to create a VM
 create_vm() {
-    local vm_name=$1
-    local ram=$2
-    local hdd=$3
-    local cpu=$4
+    local vm_name="$1"
+    local ram="$2"
+    local hdd="$3"
+    local cpu="$4"
 
     msg_warn "Creating VM: $vm_name"
-    if ! multipass launch $DEFAULT_UBUNTU_VERSION -m $ram -d $hdd -c $cpu -n $vm_name; then
+    if ! multipass launch "$DEFAULT_UBUNTU_VERSION" -m "$ram" -d "$hdd" -c "$cpu" -n "$vm_name"; then
         msg_error "Failed to create VM: $vm_name"
         exit 1
     fi
-    multipass info $vm_name
+    multipass info "$vm_name"
 }
 
 function remove_vm() {
-    local vm_name=$1
+    local vm_name="$1"
 
     # Verifica se la VM esiste
     if multipass list | grep -q "$vm_name"; then
         msg_warn "Removing VM: $vm_name..."
-        multipass delete --purge "$vm_name" > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
+        if multipass delete --purge "$vm_name" > /dev/null 2>&1; then
             msg_warn "VM $vm_name removed successfully."
         else
             msg_error "Failed to remove VM: $vm_name"
@@ -39,15 +38,14 @@ function clone_vm() {
     local new_vm_name="$1"
     local source_vm="$2"
 
-    multipass clone "$source_vm" --name "$new_vm_name"
-    if [ $? -ne 0 ]; then
+    if ! multipass clone "$source_vm" --name "$new_vm_name"; then
         msg_error "Failed to clone VM: $source_vm"
         return 1
     fi
 }
 
 function install_docker() {
-    local vm_name=$1
+    local vm_name="$1"
     msg_info "Installing Docker on $vm_name..."
     if ! multipass shell "$vm_name" <<EOF
 #!/bin/bash
@@ -85,10 +83,16 @@ EOF
 }
 
 function complete_microk8s_setup() {
+    local app_name
+    local deploy_info
+    local deployment
+    local deploy_var
+    local deploy_var_value
+
     wait_for_microk8s_ready "$VM_MAIN_NAME"
     msg_info "=== Task 3: Completing microk8s setup ==="
 
-    multipass transfer -r config $VM_MAIN_NAME:/home/ubuntu/microk8s_demo_config
+    multipass transfer -r config "$VM_MAIN_NAME:/home/ubuntu/microk8s_demo_config"
 
     declare -A deployments # Dichiarazione dell'array associativo
 
@@ -103,62 +107,58 @@ function complete_microk8s_setup() {
     deployments["rabbitmq"]=""
     deployments["jenkins"]=""
 
-    function deploy_app() {
-        local app_name="$1"
-        local deploy_info="${deployments[$app_name]}"
+    for app_name in "${!deployments[@]}"; do
+        deploy_info="${deployments[$app_name]}"
 
-        local deployment="$app_name" # Default deployment name
-        if [ -n "$deploy_info" ]; then
+        deployment="$app_name" # Default deployment name
+        if [[ -n "$deploy_info" ]]; then
             deployment=$(echo "$deploy_info" | awk -F'deployment=' '{print $2}')
         fi
 
-        local deploy_var="DEPLOY_$(echo "$app_name" | tr '[:lower:]-' '[:upper:]_')"
+        deploy_var="DEPLOY_$(echo "$app_name" | tr '[:lower:]-' '[:upper:]_')"
+        deploy_var_value="${!deploy_var:-}"
 
-        if [ -z "${!deploy_var}" ]; then
+        if [[ -z "$deploy_var_value" ]]; then
             msg_warn "Variable $deploy_var is not defined. Skipping $app_name deployment."
-            return 0
+            continue
         fi
 
-        if eval "[ \${$deploy_var} = 'true' ]"; then
-            if ! multipass exec $VM_MAIN_NAME -- bash -c "cat /home/ubuntu/microk8s_demo_config/$app_name.yaml | envsubst | kubectl apply -f -"; then
+        if [[ "$deploy_var_value" == "true" ]]; then
+            if ! multipass exec "$VM_MAIN_NAME" -- bash -c "export DNS_SUFFIX='${DNS_SUFFIX}'; cat /home/ubuntu/microk8s_demo_config/$app_name.yaml | envsubst | kubectl apply -f -"; then
                 msg_error "Failed to apply $app_name"
-                return 1
+                continue
             fi
 
             # Verifica lo stato del deployment
-            if ! multipass exec $VM_MAIN_NAME -- bash -c "kubectl rollout status deployment/$deployment -n $app_name --timeout=60s"; then
+            if ! multipass exec "$VM_MAIN_NAME" -- bash -c "kubectl rollout status deployment/$deployment -n $app_name --timeout=60s"; then
                 msg_error "Failed to rollout deployment $deployment"
-                return 1
+                continue
             fi
         else
             msg_warn "Skipping $app_name deployment."
         fi
-    }
-
-    for app_name in "${!deployments[@]}"; do
-        deploy_app "$app_name"
     done
 }
 
 function k8s_vm_setup(){
-    VM_NAME=$1
-    multipass transfer script/remote/__install_microk8s.sh $VM_NAME:/home/ubuntu/install_microk8s.sh
-    multipass exec $VM_NAME -- /home/ubuntu/install_microk8s.sh
-    multipass exec $VM_NAME -- rm -rf /home/ubuntu/install_microk8s.sh
+    local VM_NAME="$1"
+    multipass transfer script/remote/__install_microk8s.sh "$VM_NAME:/home/ubuntu/install_microk8s.sh"
+    multipass exec "$VM_NAME" -- /home/ubuntu/install_microk8s.sh "${microk8s_version:-1.32}"
+    multipass exec "$VM_NAME" -- rm -rf /home/ubuntu/install_microk8s.sh
 }
 
 function main_vm_setup(){
-    create_vm $VM_MAIN_NAME "$mainRam" "$mainHddGb" "$mainCpu"
-    add_machine_to_dns $VM_MAIN_NAME
+    create_vm "$VM_MAIN_NAME" "$mainRam" "$mainHddGb" "$mainCpu"
+    add_machine_to_dns "$VM_MAIN_NAME"
     restart_dns_service
     msg_info "=== Task 1: ${VM_MAIN_NAME} Setup ==="
-    k8s_vm_setup $VM_MAIN_NAME
-    multipass stop $VM_MAIN_NAME
+    k8s_vm_setup "$VM_MAIN_NAME"
+    multipass stop "$VM_MAIN_NAME"
 }
 
 function k8s_vm_save_template(){
-    multipass clone $VM_MAIN_NAME -n ${node_template}
-    multipass start $VM_MAIN_NAME
+    multipass clone "$VM_MAIN_NAME" -n "${node_template}"
+    multipass start "$VM_MAIN_NAME"
 }
 
 function client_vm_setup() {

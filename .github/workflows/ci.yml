@@ -48,43 +48,6 @@ jobs:
             script/menu/*.sh \
             || true  # Non fallire per ora, solo warning
 
-  # Job opzionale: test completo con Multipass (solo su macOS)
-  integration-test:
-    name: Integration Test (Multipass)
-    runs-on: macos-latest
-    needs: lint
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Multipass
-        run: |
-          brew install --cask multipass
-          hash -r
-
-      - name: Wait for Multipass to be ready
-        run: |
-          echo "Waiting for Multipass to start..."
-          for i in {1..30}; do
-            if multipass list 2>/dev/null; then
-              echo "Multipass is ready!"
-              break
-            fi
-            echo "Attempt $i: Multipass is not ready yet, waiting..."
-            sleep 5
-          done
-
-      - name: Create cluster
-        run: ./create_kube_vms.sh
-        timeout-minutes: 30
-
-      - name: Show cluster info
-        run: |
-          multipass list
-          multipass exec k8s-main -- kubectl get nodes || true
-
-      - name: Destroy cluster
-        if: always()
-        run: ./destroy_kube_vms.sh || true
+  # NOTE: Integration test with Multipass is not possible on GitHub Actions
+  # because hosted runners don't support hardware virtualization.
+  # Run integration tests locally with: ./create_kube_vms.sh

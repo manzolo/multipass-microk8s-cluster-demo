@@ -21,8 +21,11 @@ This is a bash-based automation project for creating a local MicroK8s Kubernetes
 # Run tests
 ./script/_test.sh
 
-# Git flow release (prompts for version)
-./new_release
+# Git flow release
+./new-release           # patch release (default)
+./new-release minor     # minor release
+./new-release major     # major release
+./new-release -y patch  # senza conferme
 ```
 
 ## Architecture
